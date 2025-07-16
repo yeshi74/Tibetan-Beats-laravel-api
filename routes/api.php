@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\AlbumApiController;
 
 
 Route::get('/songs', [SongApiController::class, 'index']);
+Route::get('/songs/search', [SongApiController::class, 'search']);
 Route::get('/songs/{id}', [SongApiController::class, 'show']);
 Route::post('/songs', [SongApiController::class, 'store']);
 Route::put('/songs/{id}', [SongApiController::class, 'update']);

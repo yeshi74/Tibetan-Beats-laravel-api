@@ -34,6 +34,20 @@ class SongApiController extends Controller
     
     }
 
+    public function search(Request $request)
+    {
+        $query = $request->input('q');
+
+        $songs = Song::where('title', 'like', "%{$query}%")
+                    ->orWhere('artist', 'like', "%{$query}%")
+                    ->get();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $songs
+        ]);
+    }
+
     /**
      * Generate full URL for song file.
      */

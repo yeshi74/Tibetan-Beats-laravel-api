@@ -9,9 +9,20 @@ use App\Models\Album;
 
 class SongAdminController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $songs = Song::latest()->get();
+
+        $query = Song::query();
+
+        if ($request->has('search')) {
+        $search = $request->search;
+        $query->where('title', 'like', "%{$search}%")
+              ->orWhere('artist', 'like', "%{$search}%");
+        }
+
+        $songs = $query->latest()->paginate(10);
+
         return view('admin.songs.index', compact('songs'));
     }
 
