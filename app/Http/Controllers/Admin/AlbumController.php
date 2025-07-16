@@ -22,6 +22,13 @@ class AlbumController extends Controller
         return view('admin.albums.create', compact('albums'));
     }
 
+    public function show($id)
+    {
+        $album = Album::with('songs')->findOrFail($id);
+
+        return view('admin.albums.show', compact('album'));
+    }
+
     public function edit(Song $song)
     {
         $albums = Album::all();

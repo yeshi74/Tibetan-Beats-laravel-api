@@ -53,6 +53,11 @@
                                                     <button type="submit" class="text-red-600 hover:underline">Delete</button>
                                                 </form>
                                             </div>
+
+                                            <a href="{{ route('admin.albums.show', $album->id) }}"
+                                               class="inline-flex items-center px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600">
+                                               View
+                                            </a>
                                         </td>
                                     </tr>
                                 @endforeach
