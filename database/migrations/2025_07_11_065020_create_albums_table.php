@@ -13,8 +13,11 @@ return new class extends Migration
     {
         Schema::create('albums', function (Blueprint $table) {
             $table->id();
+            $table->string('name');
+            $table->string('cover_image')->nullable();
             $table->timestamps();
         });
+
     }
 
     /**

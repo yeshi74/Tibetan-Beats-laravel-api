@@ -3,7 +3,7 @@
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\SongAdminController;
-
+use App\Http\Controllers\Admin\AlbumController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -20,8 +20,10 @@ Route::middleware('auth')->group(function () {
 });
 
 
-Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth', 'is_admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::resource('albums', AlbumController::class);
     Route::resource('songs', SongAdminController::class);
 });
+
 
 require __DIR__.'/auth.php';

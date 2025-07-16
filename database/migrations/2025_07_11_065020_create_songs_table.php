@@ -17,6 +17,7 @@ return new class extends Migration
         $table->string('artist')->nullable();
         $table->string('file_path');
         $table->string('cover_image')->nullable();
+        $table->foreignId('album_id')->nullable()->constrained()->onDelete('set null');
         $table->timestamps();
         });
     }

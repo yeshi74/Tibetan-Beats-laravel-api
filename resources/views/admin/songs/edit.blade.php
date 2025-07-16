@@ -20,6 +20,18 @@
             <input name="artist" value="{{ old('artist', $song->artist) }}" class="w-full border px-4 py-2 rounded" />
         </div>
 
+        <div class="mt-4">
+            <label for="album_id" class="block font-medium text-sm text-gray-700">Select Album</label>
+            <select name="album_id" id="album_id" class="block mt-1 w-full">
+                <option value="">-- None --</option>
+                @foreach($albums as $album)
+                    <option value="{{ $album->id }}" {{ old('album_id', $song->album_id ?? '') == $album->id ? 'selected' : '' }}>
+                        {{ $album->name }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
+
         <div class="mb-4">
             <label class="block font-semibold">Replace Audio (optional)</label>
             <input type="file" name="file" class="block mt-1" />

@@ -30,6 +30,18 @@
                 <input type="text" name="artist" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" x-ref="artist">
             </div>
 
+            <div class="mt-4">
+                <label for="album_id" class="block font-medium text-sm text-gray-700">Select Album</label>
+                <select name="album_id" id="album_id" class="block mt-1 w-full">
+                    <option value="">-- None --</option>
+                    @foreach($albums as $album)
+                        <option value="{{ $album->id }}" {{ old('album_id', $song->album_id ?? '') == $album->id ? 'selected' : '' }}>
+                            {{ $album->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
             <div class="mb-4">
                 <label class="block font-medium text-gray-700">MP3/WAV File</label>
                 <input type="file" name="file" class="mt-1 block w-full" required x-ref="file">
@@ -40,10 +52,11 @@
                     🎶 Upload Song
                 </button>
             </div>
-            <div>
-                🎶 
+            <div class="mt-4 flex justify-end space-x-2">
+                <a href="{{ route('admin.songs.index') }}" class="inline-flex items-center px-4 py-2 bg-gray-200 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-300">
+                    Cancel
+                </a>
             </div>
-
             <!-- Upload Progress -->
             <template x-if="isUploading">
                 <div class="mb-4">
