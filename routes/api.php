@@ -25,3 +25,10 @@ Route::post('register', [AuthController::class, 'register']);
 Route::post('login',    [AuthController::class, 'login']);
 Route::post('logout',   [AuthController::class, 'logout'])->middleware('auth:sanctum');
 Route::get('user',      [AuthController::class, 'user'])->middleware('auth:sanctum');
+Route::post('/login/mobile', [AuthController::class, 'loginWithMobile']);
+
+// Send OTP
+Route::post('/login/send-otp', [AuthController::class, 'sendOtp']);
+
+// Verify OTP and login
+Route::post('/login/verify-otp', [AuthController::class, 'verifyOtp']);
