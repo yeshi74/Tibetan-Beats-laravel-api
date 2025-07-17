@@ -83,6 +83,9 @@
                     formData.append('artist', this.$refs.artist.value);
                     formData.append('file', this.$refs.file.files[0]);
 
+                    const albumSelect = document.getElementById('album_id');
+                    formData.append('album_id', albumSelect.value);
+
                     this.isUploading = true;
                     this.progress = 0;
 

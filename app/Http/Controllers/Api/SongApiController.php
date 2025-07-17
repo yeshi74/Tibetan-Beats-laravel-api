@@ -86,11 +86,11 @@ class SongApiController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-        'title' => 'required|string|max:255',
-        'artist' => 'nullable|string|max:255',
-        'file' => 'required|file|mimes:mp3,wav|max:51200',
-        'cover_image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-        'album_id' => 'nullable|exists:albums,id',
+            'title' => 'required|string|max:255',
+            'artist' => 'nullable|string|max:255',
+            'file' => 'required|file|mimes:mp3,wav|max:51200',
+            'cover_image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'album_id' => 'nullable|exists:albums,id',
         ]);
 
         $coverPath = null;
@@ -105,7 +105,7 @@ class SongApiController extends Controller
             'artist' => $request->artist,
             'file_path' => $filePath,
             'cover_image' => $coverPath,
-            'album_id' => $validated['album_id'] ?? null,
+            'album_id' => $request->album_id,
         ]);
 
         return response()->json([

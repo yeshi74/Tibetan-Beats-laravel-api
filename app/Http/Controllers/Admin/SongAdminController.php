@@ -42,6 +42,7 @@ class SongAdminController extends Controller
         'album_id' => 'nullable|exists:albums,id',
     ]);
 
+
     // Store the audio file
     $filePath = $request->file('file')->store('songs', 'public');
 
@@ -49,6 +50,7 @@ class SongAdminController extends Controller
     $coverPath = $request->hasFile('cover_image')
         ? $request->file('cover_image')->store('covers', 'public')
         : null;
+
 
     // Save to DB
     Song::create([
