@@ -24,6 +24,8 @@ class User extends Authenticatable
         'password',
         'is_admin',
         'mobile',
+        'otp_code',
+        'otp_expires_at'
     ];
 
     /**

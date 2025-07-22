@@ -21,7 +21,7 @@ class AuthController extends Controller
         $user = User::create([
             'name'=>$req->name,
             'email'=>$req->email,
-            'mobile' => $request->mobile,
+            'mobile' => $req->mobile,
             'password'=>Hash::make($req->password),
             'is_admin'=>0,
         ]);
@@ -71,8 +71,9 @@ class AuthController extends Controller
 
         // 🚀 You can integrate Twilio/SMS API here
         return response()->json([
+            'status' => 'success',
             'message' => 'OTP sent successfully',
-            'otp' => $otp  // Show OTP for testing (remove in production)
+            // 'otp' => $otp  // Show OTP for testing (remove in production)
         ]);
     }
 

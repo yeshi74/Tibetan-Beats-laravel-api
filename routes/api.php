@@ -32,3 +32,7 @@ Route::post('/login/send-otp', [AuthController::class, 'sendOtp']);
 
 // Verify OTP and login
 Route::post('/login/verify-otp', [AuthController::class, 'verifyOtp']);
+
+Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
+    return $request->user();
+});
