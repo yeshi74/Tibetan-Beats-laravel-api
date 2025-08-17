@@ -9,21 +9,17 @@ use App\Models\Song;
 
 class SongApiController extends Controller
 {
-
-    public function index()
+    public function index(Request $request)
     {
-        $songs = Song::all()->map(function ($song) {
-        return [
-            'id' => $song->id,
-            'title' => $song->title,
-            'artist' => $song->artist,
-            'audio_url' => $song->file_path ? asset('storage/' . $song->file_path) : null,
-            'cover_image_url' => $song->cover_image ? asset('storage/' . $song->cover_image) : null,
-            'album' => $song->album ? [
-                'id' => $song->album->id,
-                'name' => $song->album->name,
-                'cover_image_url' => $song->album->cover_image ? asset('storage/' . $song->album->cover_image) : null,
-                ] : null,
+        $baseUrl = $request->getSchemeAndHttpHost();
+
+        $songs = Song::all()->map(function ($song) use ($baseUrl) {
+            return [
+                'id' => $song->id,
+                'title' => $song->title,
+                'artist' => $song->artist,
+                'audio_url' => $baseUrl . '/api/songs/stream/' . $song->id,
+                'cover_image_url' => $song->cover_image ? $baseUrl . '/storage/' . $song->cover_image : null,
             ];
         });
 
@@ -31,16 +27,79 @@ class SongApiController extends Controller
             'status' => 'success',
             'data' => $songs,
         ]);
-    
+    }
+
+    public function stream($id)
+    {
+        $song = Song::findOrFail($id);
+        $filePath = storage_path('app/public/' . $song->file_path);
+
+        if (!file_exists($filePath)) {
+            abort(404, 'File not found');
+        }
+
+        $size   = filesize($filePath);
+        $length = $size;
+        $start  = 0;
+        $end    = $size - 1;
+
+        header('Content-Type: audio/mpeg');
+        header('Accept-Ranges: bytes');
+
+        if (isset($_SERVER['HTTP_RANGE'])) {
+            [$param, $range] = explode('=', $_SERVER['HTTP_RANGE'], 2);
+            if (strtolower(trim($param)) !== 'bytes') {
+                header('HTTP/1.1 416 Requested Range Not Satisfiable');
+                exit;
+            }
+
+            [$start, $end] = explode('-', $range, 2);
+            $start = intval($start);
+
+            if ($end === '') {
+                $end = $size - 1;
+            } else {
+                $end = intval($end);
+            }
+
+            $length = ($end - $start) + 1;
+
+            header('HTTP/1.1 206 Partial Content');
+            header("Content-Range: bytes $start-$end/$size");
+        }
+
+        header('Content-Length: ' . $length);
+
+        $fp = fopen($filePath, 'rb');
+        fseek($fp, $start);
+        $bufferSize = 1024 * 8;
+        while (!feof($fp) && ($pos = ftell($fp)) <= $end) {
+            if ($pos + $bufferSize > $end) {
+                $bufferSize = $end - $pos + 1;
+            }
+            echo fread($fp, $bufferSize);
+            flush();
+        }
+        fclose($fp);
     }
 
     public function search(Request $request)
     {
+        $baseUrl = $request->getSchemeAndHttpHost();
         $query = $request->input('q');
 
         $songs = Song::where('title', 'like', "%{$query}%")
                     ->orWhere('artist', 'like', "%{$query}%")
-                    ->get();
+                    ->get()
+                    ->map(function ($song) use ($baseUrl) {
+                        return [
+                            'id' => $song->id,
+                            'title' => $song->title,
+                            'artist' => $song->artist,
+                            'audio_url' => $song->file_path ? $baseUrl . '/api/songs/stream/' . basename($song->file_path) : null,
+                            'cover_image_url' => $song->cover_image ? $baseUrl . '/storage/' . $song->cover_image : null,
+                        ];
+                    });
 
         return response()->json([
             'status' => 'success',
@@ -48,27 +107,9 @@ class SongApiController extends Controller
         ]);
     }
 
-    /**
-     * Generate full URL for song file.
-     */
-    private function getSongUrl($path)
+    public function show(Request $request, $id)
     {
-        if (!$path) return null;
-        return url(Storage::url('songs/' . $path));
-    }
-
-    /**
-     * Generate full URL for cover image.
-     */
-    private function getCoverUrl($path)
-    {
-        if (!$path) return null;
-        return url(Storage::url('covers/' . $path));
-    }
-
-
-    public function show($id)
-    {
+        $baseUrl = $request->getSchemeAndHttpHost();
         $song = Song::findOrFail($id);
 
         return response()->json([
@@ -77,8 +118,8 @@ class SongApiController extends Controller
                 'id' => $song->id,
                 'title' => $song->title,
                 'artist' => $song->artist,
-                'audio_url' => asset('storage/' . $song->file_path),
-                'cover_image_url' => $song->cover_image ? asset('storage/' . $song->cover_image) : null,
+                'audio_url' => $song->file_path ? $baseUrl . '/api/songs/stream/' . basename($song->file_path) : null,
+                'cover_image_url' => $song->cover_image ? $baseUrl . '/storage/' . $song->cover_image : null,
             ]
         ]);
     }
@@ -108,10 +149,19 @@ class SongApiController extends Controller
             'album_id' => $request->album_id,
         ]);
 
+        $baseUrl = $request->getSchemeAndHttpHost();
+
         return response()->json([
-        'success' => true,
-        'message' => 'Song uploaded successfully',
-        'data' => $song,
+            'success' => true,
+            'message' => 'Song uploaded successfully',
+            'data' => [
+                'id' => $song->id,
+                'title' => $song->title,
+                'artist' => $song->artist,
+                'audio_url' => $filePath ? $baseUrl . '/storage/' . $filePath : null,
+                'cover_image_url' => $coverPath ? $baseUrl . '/storage/' . $coverPath : null,
+                'album_id' => $song->album_id,
+            ],
         ]);
     }
 
@@ -127,7 +177,6 @@ class SongApiController extends Controller
             'album_id' => 'nullable|exists:albums,id',
         ]);
 
-        // Replace song file if uploaded
         if ($request->hasFile('file')) {
             if ($song->file_path) {
                 Storage::disk('public')->delete($song->file_path);
@@ -135,7 +184,6 @@ class SongApiController extends Controller
             $song->file_path = $request->file('file')->store('songs', 'public');
         }
 
-        // Replace cover image if uploaded
         if ($request->hasFile('cover_image')) {
             if ($song->cover_image) {
                 Storage::disk('public')->delete($song->cover_image);
@@ -143,11 +191,12 @@ class SongApiController extends Controller
             $song->cover_image = $request->file('cover_image')->store('covers', 'public');
         }
 
-        // Update other fields
         $song->title = $request->title;
         $song->artist = $request->artist;
         $song->album_id = $request->album_id;
         $song->save();
+
+        $baseUrl = $request->getSchemeAndHttpHost();
 
         return response()->json([
             'message' => 'Song updated successfully',
@@ -155,8 +204,8 @@ class SongApiController extends Controller
                 'id' => $song->id,
                 'title' => $song->title,
                 'artist' => $song->artist,
-                'audio_url' => asset('storage/' . $song->file_path),
-                'cover_image_url' => $song->cover_image ? asset('storage/' . $song->cover_image) : null,
+                'audio_url' => $song->file_path ? $baseUrl . '/storage/' . $song->file_path : null,
+                'cover_image_url' => $song->cover_image ? $baseUrl . '/storage/' . $song->cover_image : null,
                 'album_id' => $song->album_id,
             ]
         ]);
@@ -166,7 +215,6 @@ class SongApiController extends Controller
     {
         $song = Song::findOrFail($id);
 
-        // Delete files
         if ($song->file_path) {
             Storage::disk('public')->delete($song->file_path);
         }
@@ -178,4 +226,6 @@ class SongApiController extends Controller
 
         return response()->json(['message' => 'Song deleted successfully']);
     }
+
+
 }

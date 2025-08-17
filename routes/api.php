@@ -27,6 +27,9 @@ Route::post('logout',   [AuthController::class, 'logout'])->middleware('auth:san
 Route::get('user',      [AuthController::class, 'user'])->middleware('auth:sanctum');
 Route::post('/login/mobile', [AuthController::class, 'loginWithMobile']);
 
+Route::get('/songs/stream/{id}', [SongApiController::class, 'stream']);
+
+
 // Send OTP
 Route::post('/login/send-otp', [AuthController::class, 'sendOtp']);
 
