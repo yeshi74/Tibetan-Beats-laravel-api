@@ -96,7 +96,7 @@ class SongApiController extends Controller
                             'id' => $song->id,
                             'title' => $song->title,
                             'artist' => $song->artist,
-                            'audio_url' => $song->file_path ? $baseUrl . '/api/songs/stream/' . basename($song->file_path) : null,
+                            'audio_url' => $song->id ? $baseUrl . '/api/songs/stream/' . $song->id : null,
                             'cover_image_url' => $song->cover_image ? $baseUrl . '/storage/' . $song->cover_image : null,
                         ];
                     });
