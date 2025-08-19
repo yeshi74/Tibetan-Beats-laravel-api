@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\AlbumController;
 use Illuminate\Support\Facades\Mail;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Admin\PlaylistController;
 
 
 Route::get('/', function () {
@@ -42,3 +43,10 @@ Route::get('/email-verified-success', function () {
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [LoginController::class, 'login']);
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
+
+
+Route::prefix('admin')->name('admin.')->group(function () {
+    Route::resource('playlists', PlaylistController::class);
+});
+
+

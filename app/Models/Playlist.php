@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Playlist extends Model
 {
-    protected $fillable = ['name', 'description', 'user_id'];
+    protected $fillable = ['user_id', 'name', 'description'];
 
     public function user()
     {
@@ -15,6 +15,6 @@ class Playlist extends Model
 
     public function songs()
     {
-        return $this->belongsToMany(Song::class)->withTimestamps();
+        return $this->belongsToMany(Song::class, 'playlist_song');
     }
 }
