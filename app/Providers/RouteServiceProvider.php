@@ -21,4 +21,6 @@ class RouteServiceProvider extends ServiceProvider
         Route::middleware('web')
             ->group(base_path('routes/web.php'));
     }
+
+    public const HOME = '/email-verified-success';
 }

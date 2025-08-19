@@ -4,6 +4,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\SongApiController;
 use App\Http\Controllers\Api\AlbumApiController;
 use App\Http\Controllers\Api\AuthController;
+use Illuminate\Foundation\Auth\EmailVerificationRequest;
+use Illuminate\Http\Request;
 
 
 Route::get('/songs', [SongApiController::class, 'index']);
@@ -39,3 +41,20 @@ Route::post('/login/verify-otp', [AuthController::class, 'verifyOtp']);
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
+
+
+Route::post('/email/verification-notification', function (Request $request) {
+    $request->user()->sendEmailVerificationNotification();
+    return response()->json(['message' => 'Verification link sent!']);
+})->middleware(['auth:sanctum']);
+
+Route::get('/verify-email/{id}/{hash}', function (EmailVerificationRequest $request) {
+    $request->fulfill();
+    return response()->json(['message' => 'Email verified successfully!']);
+})->middleware(['auth:sanctum', 'signed'])->name('verification.verify');
+
+
+
+Route::get('/email-verified-success', function () {
+    return view('verified-success');
+})->name('verification.success');

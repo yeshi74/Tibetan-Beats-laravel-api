@@ -4,6 +4,9 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\SongAdminController;
 use App\Http\Controllers\Admin\AlbumController;
+use Illuminate\Support\Facades\Mail;
+use App\Http\Controllers\Auth\VerifyEmailController;
+
 
 Route::get('/', function () {
     return view('welcome');
@@ -26,4 +29,10 @@ Route::middleware(['auth', 'is_admin'])->prefix('admin')->name('admin.')->group(
 });
 
 
-require __DIR__.'/auth.php';
+Route::get('/verify-email/{id}/{hash}', [VerifyEmailController::class, '__invoke'])
+    ->middleware(['signed', 'throttle:6,1']) // no 'auth'
+    ->name('verification.verify');
+
+Route::get('/email-verified-success', function () {
+    return view('verified-success'); // your blade file
+});
