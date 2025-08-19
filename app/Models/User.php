@@ -60,4 +60,9 @@ class User extends Authenticatable
         $this->notify(new CustomVerifyEmail);
     }
 
+    public function playlists()
+    {
+        return $this->hasMany(\App\Models\Playlist::class);
+    }
+
 }

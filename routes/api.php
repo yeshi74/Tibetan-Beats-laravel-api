@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\AlbumApiController;
 use App\Http\Controllers\Api\AuthController;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\Request;
+use App\Http\Controllers\Api\PlaylistController;
 
 
 Route::get('/songs/recent', [SongApiController::class, 'recent']);
@@ -58,4 +59,20 @@ Route::get('/verify-email/{id}/{hash}', function (EmailVerificationRequest $requ
 Route::get('/email-verified-success', function () {
     return view('verified-success');
 })->name('verification.success');
+
+
+Route::middleware('auth:sanctum')->group(function () {
+    // playlists
+    Route::get('/playlists', [PlaylistController::class, 'index']);
+    Route::post('/playlists', [PlaylistController::class, 'store']);
+    Route::get('/playlists/{playlist}', [PlaylistController::class, 'show']);
+    Route::put('/playlists/{playlist}', [PlaylistController::class, 'update']);
+    Route::delete('/playlists/{playlist}', [PlaylistController::class, 'destroy']);
+
+    // songs in a playlist
+    Route::post('/playlists/{playlist}/songs', [PlaylistController::class, 'addSong']);
+    Route::delete('/playlists/{playlist}/songs/{song}', [PlaylistController::class, 'removeSong']);
+});
+
+
 
