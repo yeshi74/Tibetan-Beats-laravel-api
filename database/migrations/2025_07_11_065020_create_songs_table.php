@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('songs', function (Blueprint $table) {
         $table->id();
         $table->string('title');
+        $table->string('genre')->nullable();
         $table->string('artist')->nullable();
         $table->string('file_path');
         $table->string('cover_image')->nullable();

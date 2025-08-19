@@ -17,6 +17,7 @@ class SongApiController extends Controller
             return [
                 'id' => $song->id,
                 'title' => $song->title,
+                'genre' => $song->genre,
                 'artist' => $song->artist,
                 'audio_url' => $baseUrl . '/api/songs/stream/' . $song->id,
                 'cover_image_url' => $song->cover_image ? $baseUrl . '/storage/' . $song->cover_image : null,
@@ -95,8 +96,9 @@ class SongApiController extends Controller
                         return [
                             'id' => $song->id,
                             'title' => $song->title,
+                            'genre' => $song->genre,
                             'artist' => $song->artist,
-                            'audio_url' => $song->id ? $baseUrl . '/api/songs/stream/' . $song->id : null,
+                            'audio_url' => $baseUrl . '/api/songs/stream/' . $song->id,
                             'cover_image_url' => $song->cover_image ? $baseUrl . '/storage/' . $song->cover_image : null,
                         ];
                     });
@@ -117,8 +119,9 @@ class SongApiController extends Controller
             'data' => [
                 'id' => $song->id,
                 'title' => $song->title,
+                'genre' => $song->genre,
                 'artist' => $song->artist,
-                'audio_url' => $song->file_path ? $baseUrl . '/api/songs/stream/' . basename($song->file_path) : null,
+                'audio_url' => $song->file_path ? $baseUrl . '/api/songs/stream/' . $song->id : null,
                 'cover_image_url' => $song->cover_image ? $baseUrl . '/storage/' . $song->cover_image : null,
             ]
         ]);
@@ -132,13 +135,12 @@ class SongApiController extends Controller
             'file' => 'required|file|mimes:mp3,wav|max:51200',
             'cover_image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
             'album_id' => 'nullable|exists:albums,id',
-            'genre' => 'required|string|max:100', // ✅ validation for genre
+            'genre' => 'required|string|max:100',
         ]);
 
-        $coverPath = null;
-        if ($request->hasFile('cover_image')) {
-            $coverPath = $request->file('cover_image')->store('covers', 'public');
-        }
+        $coverPath = $request->hasFile('cover_image')
+            ? $request->file('cover_image')->store('covers', 'public')
+            : null;
 
         $filePath = $request->file('file')->store('songs', 'public');
 
@@ -148,7 +150,7 @@ class SongApiController extends Controller
             'file_path'  => $filePath,
             'cover_image'=> $coverPath,
             'album_id'   => $request->album_id,
-            'genre'      => $request->genre, // ✅ save genre
+            'genre'      => $request->genre,
         ]);
 
         $baseUrl = $request->getSchemeAndHttpHost();
@@ -160,14 +162,13 @@ class SongApiController extends Controller
                 'id' => $song->id,
                 'title' => $song->title,
                 'artist' => $song->artist,
-                'genre' => $song->genre, // ✅ include in response
+                'genre' => $song->genre,
                 'audio_url' => $filePath ? $baseUrl . '/storage/' . $filePath : null,
                 'cover_image_url' => $coverPath ? $baseUrl . '/storage/' . $coverPath : null,
                 'album_id' => $song->album_id,
             ],
         ]);
     }
-
 
     public function update(Request $request, $id)
     {
@@ -176,6 +177,7 @@ class SongApiController extends Controller
         $request->validate([
             'title' => 'required|string|max:255',
             'artist' => 'required|string|max:255',
+            'genre' => 'required|string|max:100',
             'file' => 'nullable|mimes:mp3,wav,ogg|max:10000',
             'cover_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
             'album_id' => 'nullable|exists:albums,id',
@@ -197,6 +199,7 @@ class SongApiController extends Controller
 
         $song->title = $request->title;
         $song->artist = $request->artist;
+        $song->genre = $request->genre;
         $song->album_id = $request->album_id;
         $song->save();
 
@@ -208,6 +211,7 @@ class SongApiController extends Controller
                 'id' => $song->id,
                 'title' => $song->title,
                 'artist' => $song->artist,
+                'genre' => $song->genre,
                 'audio_url' => $song->file_path ? $baseUrl . '/storage/' . $song->file_path : null,
                 'cover_image_url' => $song->cover_image ? $baseUrl . '/storage/' . $song->cover_image : null,
                 'album_id' => $song->album_id,
@@ -231,5 +235,25 @@ class SongApiController extends Controller
         return response()->json(['message' => 'Song deleted successfully']);
     }
 
+    public function recent()
+    {
+        return Song::orderBy('created_at', 'desc')->take(15)->get();
+    }
 
+    public function byGenre($genre)
+    {
+        return Song::where('genre', $genre)->latest()->take(10)->get();
+    }
+
+    public function genres()
+    {
+        $genres = Song::select('genre')
+            ->whereNotNull('genre')
+            ->distinct()
+            ->pluck('genre');
+
+        return response()->json([
+            'data' => $genres
+        ]);
+    }
 }

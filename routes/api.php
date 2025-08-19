@@ -8,6 +8,11 @@ use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\Request;
 
 
+Route::get('/songs/recent', [SongApiController::class, 'recent']);
+Route::get('/songs/genres', [SongApiController::class, 'genres']);
+Route::get('/songs/genre/{genre}', [SongApiController::class, 'byGenre']);
+
+
 Route::get('/songs', [SongApiController::class, 'index']);
 Route::get('/songs/search', [SongApiController::class, 'search']);
 Route::get('/songs/{id}', [SongApiController::class, 'show']);
@@ -32,11 +37,6 @@ Route::post('/login/mobile', [AuthController::class, 'loginWithMobile']);
 Route::get('/songs/stream/{id}', [SongApiController::class, 'stream']);
 
 
-// Send OTP
-Route::post('/login/send-otp', [AuthController::class, 'sendOtp']);
-
-// Verify OTP and login
-Route::post('/login/verify-otp', [AuthController::class, 'verifyOtp']);
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();

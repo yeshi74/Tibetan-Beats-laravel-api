@@ -47,12 +47,12 @@
                 <label for="genre" class="block font-medium text-sm text-gray-700">Genre</label>
                 <select name="genre" id="genre" class="block mt-1 w-full border-gray-300 rounded-md shadow-sm" x-ref="genre" required>
                     <option value="">-- Select Genre --</option>
-                    <option value="Pop">Losar</option>
-                    <option value="Rock">Gorshey</option>
-                    <option value="Hip-Hop">Rap</option>
-                    <option value="Jazz">Thungkar</option>
-                    <option value="Classical">Classical</option>
-                    <option value="Folk">Podcast</option>
+                    <option value="Losar">Losar</option>
+                    <option value="Gorshey">Gorshey</option>
+                    <option value="Rap">Rap</option>
+                    <option value="Thungkar">Thungkar</option>
+                    <option value="Love">Love</option>
+                    <option value="Podcast">Podcast</option>
                     <option value="Electronic">Electronic</option>
                 </select>
             </div>
