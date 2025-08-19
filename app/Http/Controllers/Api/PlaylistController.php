@@ -15,11 +15,19 @@ class PlaylistController extends Controller
         $playlists = Playlist::where('user_id', $request->user()->id)
             ->withCount('songs')
             ->latest()
-            ->get();
+            ->get()
+            ->map(function ($playlist) {
+                return [
+                    'id'          => $playlist->id,
+                    'name'        => $playlist->name,
+                    'description' => $playlist->description,
+                    'songs_count' => $playlist->songs_count,
+                ];
+            });
 
         return response()->json([
-            'status' => 'success',
-            'data'   => $playlists,
+            'status'    => 'success',
+            'playlists' => $playlists,
         ]);
     }
 
@@ -37,9 +45,16 @@ class PlaylistController extends Controller
             'description' => $validated['description'] ?? null,
         ]);
 
+        $playlist->refresh();
+
         return response()->json([
-            'status' => 'success',
-            'data'   => $playlist,
+            'status'   => 'success',
+            'playlist' => [
+                'id'          => $playlist->id,
+                'name'        => $playlist->name,
+                'description' => $playlist->description,
+                'songs_count' => 0,
+            ],
         ], 201);
     }
 
@@ -50,18 +65,13 @@ class PlaylistController extends Controller
 
         $baseUrl = $request->getSchemeAndHttpHost();
 
-        $playlist->load(['songs' => function ($q) {
-            $q->latest(); // latest first
-        }]);
-
-        // map songs to the shape your app expects
-        $songs = $playlist->songs->map(function (Song $song) use ($baseUrl) {
+        $songs = $playlist->songs()->latest()->get()->map(function (Song $song) use ($baseUrl) {
             return [
-                'id' => $song->id,
-                'title' => $song->title,
-                'artist' => $song->artist,
-                'genre' => $song->genre,
-                'audio_url' => $baseUrl . '/api/songs/stream/' . $song->id,
+                'id'              => $song->id,
+                'title'           => $song->title,
+                'artist'          => $song->artist,
+                'genre'           => $song->genre,
+                'audio_url'       => $baseUrl . '/api/songs/stream/' . $song->id,
                 'cover_image_url' => $song->cover_image ? $baseUrl . '/storage/' . $song->cover_image : null,
             ];
         });
@@ -89,10 +99,16 @@ class PlaylistController extends Controller
         ]);
 
         $playlist->update($validated);
+        $playlist->refresh();
 
         return response()->json([
-            'status' => 'success',
-            'data'   => $playlist,
+            'status'   => 'success',
+            'playlist' => [
+                'id'          => $playlist->id,
+                'name'        => $playlist->name,
+                'description' => $playlist->description,
+                'songs_count' => $playlist->songs()->count(),
+            ],
         ]);
     }
 
@@ -103,7 +119,10 @@ class PlaylistController extends Controller
 
         $playlist->delete();
 
-        return response()->json(['message' => 'Playlist deleted successfully']);
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Playlist deleted successfully',
+        ]);
     }
 
     // Add a song to playlist
@@ -115,10 +134,12 @@ class PlaylistController extends Controller
             'song_id' => 'required|exists:songs,id',
         ]);
 
-        // avoid duplicates
         $playlist->songs()->syncWithoutDetaching([$validated['song_id']]);
 
-        return response()->json(['message' => 'Song added to playlist']);
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Song added to playlist',
+        ]);
     }
 
     // Remove a song from playlist
@@ -128,7 +149,10 @@ class PlaylistController extends Controller
 
         $playlist->songs()->detach($song->id);
 
-        return response()->json(['message' => 'Song removed from playlist']);
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Song removed from playlist',
+        ]);
     }
 
     // Ensure the playlist belongs to the current user
