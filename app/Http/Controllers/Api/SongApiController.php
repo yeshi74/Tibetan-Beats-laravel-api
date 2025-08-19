@@ -242,7 +242,7 @@ class SongApiController extends Controller
 
     public function byGenre($genre)
     {
-        return Song::where('genre', $genre)->latest()->take(10)->get();
+        return Song::where('genre', $genre)->latest()->take(15)->get();
     }
 
     public function genres()
