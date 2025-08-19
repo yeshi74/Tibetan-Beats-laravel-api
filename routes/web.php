@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\SongAdminController;
 use App\Http\Controllers\Admin\AlbumController;
 use Illuminate\Support\Facades\Mail;
 use App\Http\Controllers\Auth\VerifyEmailController;
+use App\Http\Controllers\Auth\LoginController;
 
 
 Route::get('/', function () {
@@ -36,3 +37,8 @@ Route::get('/verify-email/{id}/{hash}', [VerifyEmailController::class, '__invoke
 Route::get('/email-verified-success', function () {
     return view('verified-success'); // your blade file
 });
+
+// Admin login (web)
+Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
+Route::post('/login', [LoginController::class, 'login']);
+Route::post('/logout', [LoginController::class, 'logout'])->name('logout');

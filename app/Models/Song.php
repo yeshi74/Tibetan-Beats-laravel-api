@@ -9,7 +9,7 @@
     {
         use HasFactory;
 
-        protected $fillable = ['title', 'artist', 'file_path', 'cover_image', 'album_id'];
+        protected $fillable = ['title', 'artist', 'file_path', 'cover_image', 'album_id', 'genre'];
 
         protected $appends = ['audio_url', 'cover_image_url'];
 

@@ -132,6 +132,7 @@ class SongApiController extends Controller
             'file' => 'required|file|mimes:mp3,wav|max:51200',
             'cover_image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
             'album_id' => 'nullable|exists:albums,id',
+            'genre' => 'required|string|max:100', // ✅ validation for genre
         ]);
 
         $coverPath = null;
@@ -142,11 +143,12 @@ class SongApiController extends Controller
         $filePath = $request->file('file')->store('songs', 'public');
 
         $song = Song::create([
-            'title' => $request->title,
-            'artist' => $request->artist,
-            'file_path' => $filePath,
-            'cover_image' => $coverPath,
-            'album_id' => $request->album_id,
+            'title'      => $request->title,
+            'artist'     => $request->artist,
+            'file_path'  => $filePath,
+            'cover_image'=> $coverPath,
+            'album_id'   => $request->album_id,
+            'genre'      => $request->genre, // ✅ save genre
         ]);
 
         $baseUrl = $request->getSchemeAndHttpHost();
@@ -158,12 +160,14 @@ class SongApiController extends Controller
                 'id' => $song->id,
                 'title' => $song->title,
                 'artist' => $song->artist,
+                'genre' => $song->genre, // ✅ include in response
                 'audio_url' => $filePath ? $baseUrl . '/storage/' . $filePath : null,
                 'cover_image_url' => $coverPath ? $baseUrl . '/storage/' . $coverPath : null,
                 'album_id' => $song->album_id,
             ],
         ]);
     }
+
 
     public function update(Request $request, $id)
     {

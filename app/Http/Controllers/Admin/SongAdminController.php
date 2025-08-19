@@ -36,6 +36,7 @@ class SongAdminController extends Controller
     {
         $validated = $request->validate([
         'title' => 'required|string|max:255',
+        'genre' => 'nullable|string|max:100',
         'artist' => 'required|string|max:255',
         'file' => 'required|file|mimes:mp3,wav',
         'cover_image' => 'nullable|image|mimes:jpg,jpeg,png',
@@ -55,6 +56,7 @@ class SongAdminController extends Controller
     // Save to DB
     Song::create([
         'title' => $validated['title'],
+        'genre'       => $validated['genre'] ?? null,
         'artist' => $validated['artist'],
         'file_path' => $filePath,
         'cover_image' => $coverPath,
@@ -77,12 +79,12 @@ class SongAdminController extends Controller
             'title' => 'required|string',
             'artist' => 'nullable|string',
             'album_id' => 'nullable|exists:albums,id',
+            'genre' => 'required|string|max:100',
             'file' => 'nullable|file|mimes:mp3,wav|max:51200',
             'cover_image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-
         ]);
 
-        $data = $request->only(['title', 'artist', 'cover_image']);
+        $data = $request->only(['title', 'artist', 'genre']);
 
         if ($request->hasFile('cover_image')) {
             $coverPath = $request->file('cover_image')->store('covers', 'public');
@@ -94,12 +96,13 @@ class SongAdminController extends Controller
             $data['file_path'] = $filePath;
         }
 
-        $song->album_id = $request->album_id;
+        $data['album_id'] = $request->album_id;
 
         $song->update($data);
 
         return redirect()->route('admin.songs.index')->with('success', 'Song updated successfully!');
     }
+
 
     public function destroy(Song $song)
     {

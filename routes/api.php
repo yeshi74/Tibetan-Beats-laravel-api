@@ -58,3 +58,4 @@ Route::get('/verify-email/{id}/{hash}', function (EmailVerificationRequest $requ
 Route::get('/email-verified-success', function () {
     return view('verified-success');
 })->name('verification.success');
+

@@ -42,7 +42,22 @@
                 </select>
             </div>
 
-            <div class="mb-4">
+            <!-- 🎶 Genre Dropdown -->
+            <div class="mt-4">
+                <label for="genre" class="block font-medium text-sm text-gray-700">Genre</label>
+                <select name="genre" id="genre" class="block mt-1 w-full border-gray-300 rounded-md shadow-sm" x-ref="genre" required>
+                    <option value="">-- Select Genre --</option>
+                    <option value="Pop">Losar</option>
+                    <option value="Rock">Gorshey</option>
+                    <option value="Hip-Hop">Rap</option>
+                    <option value="Jazz">Thungkar</option>
+                    <option value="Classical">Classical</option>
+                    <option value="Folk">Podcast</option>
+                    <option value="Electronic">Electronic</option>
+                </select>
+            </div>
+
+            <div class="mb-4 mt-4">
                 <label class="block font-medium text-gray-700">MP3/WAV File</label>
                 <input type="file" name="file" class="mt-1 block w-full" required x-ref="file">
             </div>
@@ -57,6 +72,7 @@
                     Cancel
                 </a>
             </div>
+
             <!-- Upload Progress -->
             <template x-if="isUploading">
                 <div class="mb-4">
@@ -85,6 +101,9 @@
 
                     const albumSelect = document.getElementById('album_id');
                     formData.append('album_id', albumSelect.value);
+
+                    // ✅ Add Genre
+                    formData.append('genre', this.$refs.genre.value);
 
                     this.isUploading = true;
                     this.progress = 0;
