@@ -15,6 +15,11 @@ class Playlist extends Model
 
     public function songs()
     {
-        return $this->belongsToMany(Song::class, 'playlist_song');
+        return $this->belongsToMany(
+            Song::class,      // Related model
+            'playlist_song',  // Pivot table
+            'playlist_id',    // Foreign key on pivot for this model
+            'song_id'         // Foreign key on pivot for related model
+        )->withTimestamps();
     }
 }
