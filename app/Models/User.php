@@ -65,4 +65,15 @@ class User extends Authenticatable
         return $this->hasMany(\App\Models\Playlist::class);
     }
 
+    public function likedSongs() {
+    return $this->belongsToMany(\App\Models\Song::class, 'liked_songs')
+                ->withTimestamps();
+    }
+
+    // app/Models/Song.php
+    public function likedBy() {
+        return $this->belongsToMany(\App\Models\User::class, 'liked_songs')
+                    ->withTimestamps();
+    }
+
 }

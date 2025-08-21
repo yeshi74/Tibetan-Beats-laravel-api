@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\AuthController;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Api\PlaylistController;
+use App\Http\Controllers\LikeController;
 
 
 Route::get('/songs/recent', [SongApiController::class, 'recent']);
@@ -21,6 +22,19 @@ Route::post('/songs', [SongApiController::class, 'store']);
 Route::put('/songs/{id}', [SongApiController::class, 'update']);
 Route::delete('/songs/{id}', [SongApiController::class, 'destroy']);
 
+Route::get('/songs/stream/{id}', [SongApiController::class, 'stream']);
+
+
+// --- Authenticated (must come BEFORE the catch-all /songs/{id}) ---
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/me/likes', [SongApiController::class, 'likedSongs']);   // ✅ add this
+    Route::post('/songs/{song}/like', [SongApiController::class, 'likeSong']);
+    Route::delete('/songs/{song}/like', [SongApiController::class, 'unlikeSong']);
+});
+
+// --- Keep this LAST so it doesn't swallow /songs/liked etc. ---
+Route::get('/songs/{id}', [SongApiController::class, 'show']);
+
 
 Route::get('/albums', [AlbumApiController::class, 'index']);
 Route::post('/albums', [AlbumApiController::class, 'store']);
@@ -34,8 +48,6 @@ Route::post('login',    [AuthController::class, 'login']);
 Route::post('logout',   [AuthController::class, 'logout'])->middleware('auth:sanctum');
 Route::get('user',      [AuthController::class, 'user'])->middleware('auth:sanctum');
 Route::post('/login/mobile', [AuthController::class, 'loginWithMobile']);
-
-Route::get('/songs/stream/{id}', [SongApiController::class, 'stream']);
 
 
 
