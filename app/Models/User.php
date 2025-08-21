@@ -30,6 +30,11 @@ class User extends Authenticatable
         'otp_expires_at'
     ];
 
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'is_premium' => 'boolean',
+    ];
+
     /**
      * The attributes that should be hidden for serialization.
      *

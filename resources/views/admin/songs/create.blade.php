@@ -53,7 +53,7 @@
                     <option value="Thungkar">Thungkar</option>
                     <option value="Love">Love</option>
                     <option value="Podcast">Podcast</option>
-                    <option value="Electronic">Electronic</option>
+                    <option value="Phama">Phama</option>
                 </select>
             </div>
 

@@ -50,6 +50,22 @@ Route::get('user',      [AuthController::class, 'user'])->middleware('auth:sanct
 Route::post('/login/mobile', [AuthController::class, 'loginWithMobile']);
 
 
+Route::middleware('auth:sanctum')->get('/me', function (Request $request) {
+    $u = $request->user();
+    return response()->json([
+        'id'         => $u->id,
+        'name'       => $u->name,
+        'email'      => $u->email,
+        'is_premium' => (bool) $u->is_premium,
+    ]);
+});
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/songs/{song}/download', [SongApiController::class, 'download'])
+         ->name('songs.download');
+});
+
+
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();

@@ -34,19 +34,35 @@ class SongApiController extends Controller
      */
     public function index(Request $request)
     {
-        $user = $request->user();
-        $likedIds = $user
-            ? DB::table('liked_songs')->where('user_id', $user->id)->pluck('song_id')->toArray()
-            : [];
+        $baseUrl = $request->getSchemeAndHttpHost();
+        $user = $request->user(); // null if not authenticated
 
-        $songs = Song::orderBy('created_at', 'desc')->get()
-            ->map(fn ($s) => $this->transformSong($request, $s, $likedIds));
+        $songs = Song::all()->map(function ($song) use ($baseUrl, $user) {
+            $data = [
+                'id'              => $song->id,
+                'title'           => $song->title,
+                'genre'           => $song->genre,
+                'artist'          => $song->artist,
+                'audio_url'       => $baseUrl . '/api/songs/stream/' . $song->id,
+                'cover_image_url' => $song->cover_image ? $baseUrl . '/storage/' . $song->cover_image : null,
+                // 'created_at' => optional if you use it on the client
+                'created_at'      => optional($song->created_at)->toIso8601String(),
+            ];
+
+            // Only authenticated + premium users get a direct download URL
+            if ($user && $user->is_premium) {
+                $data['download_url'] = $baseUrl . '/api/songs/' . $song->id . '/download';
+            }
+
+            return $data;
+        });
 
         return response()->json([
             'status' => 'success',
             'data'   => $songs,
         ]);
     }
+
 
     /**
      * Audio streaming with range support
@@ -367,5 +383,30 @@ class SongApiController extends Controller
             'songs'  => $songs,
         ]);
     }
+
+    public function download(Request $request, Song $song)
+    {
+        $user = $request->user();
+        if (!$user || !$user->is_premium) {
+            return response()->json(['message' => 'Premium required'], 403);
+        }
+
+        $filePath = storage_path('app/public/' . $song->file_path);
+        if (!file_exists($filePath)) {
+            return response()->json(['message' => 'File not found'], 404);
+        }
+
+        // If you want Range support here as well, you can reuse your stream() logic.
+        // For a simpler download (no partials), just:
+        return response()->download(
+            $filePath,
+            basename($filePath),
+            [
+                'Content-Type'        => 'audio/mpeg',
+                'Content-Disposition' => 'attachment; filename="'.basename($filePath).'"'
+            ]
+        );
+    }
+
 
 }

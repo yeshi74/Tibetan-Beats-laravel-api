@@ -42,7 +42,7 @@
                 <option value="Gorshey" {{ old('genre', $song->genre) == 'Gorshey' ? 'selected' : '' }}>Gorshey</option>
                 <option value="Rap" {{ old('genre', $song->genre) == 'Rap' ? 'selected' : '' }}>Rap</option>
                 <option value="Thungkar" {{ old('genre', $song->genre) == 'Thungkar' ? 'selected' : '' }}>Thungkar</option>
-                <option value="Classical" {{ old('genre', $song->genre) == 'Classical' ? 'selected' : '' }}>Classical</option>
+                <option value="Phama" {{ old('genre', $song->genre) == 'Phama' ? 'selected' : '' }}>Phama</option>
                 <option value="Podcast" {{ old('genre', $song->genre) == 'Podcast' ? 'selected' : '' }}>Podcast</option>
                 <option value="Losar" {{ old('genre', $song->genre) == 'Losar' ? 'selected' : '' }}>Losar</option>
             </select>
