@@ -54,6 +54,7 @@
                     <option value="Love">Love</option>
                     <option value="Podcast">Podcast</option>
                     <option value="Phama">Phama</option>
+                    <option value="Favourites">Favourites</option>
                 </select>
             </div>
 

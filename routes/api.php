@@ -43,11 +43,17 @@ Route::put('/albums/{id}', [AlbumApiController::class, 'update']);
 Route::delete('/albums/{id}', [AlbumApiController::class, 'destroy']);
 
 
-Route::post('register', [AuthController::class, 'register']);
-Route::post('login',    [AuthController::class, 'login']);
-Route::post('logout',   [AuthController::class, 'logout'])->middleware('auth:sanctum');
-Route::get('user',      [AuthController::class, 'user'])->middleware('auth:sanctum');
-Route::post('/login/mobile', [AuthController::class, 'loginWithMobile']);
+Route::post('/register', [AuthController::class, 'register']);
+Route::post('/login',    [AuthController::class, 'login']);
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/user',    [AuthController::class, 'user']);
+
+    // 🔹 Add these:
+    Route::patch('/user/update',         [AuthController::class, 'updateProfile']);
+    Route::post('/user/change-password', [AuthController::class, 'changePassword']);
+});
 
 
 Route::middleware('auth:sanctum')->get('/me', function (Request $request) {
@@ -101,6 +107,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/playlists/{playlist}/songs', [PlaylistController::class, 'addSong']);
     Route::delete('/playlists/{playlist}/songs/{song}', [PlaylistController::class, 'removeSong']);
 });
+
+Route::post('/iap/verify', [App\Http\Controllers\IapController::class, 'verify']);
 
 
 

@@ -45,6 +45,7 @@
                 <option value="Phama" {{ old('genre', $song->genre) == 'Phama' ? 'selected' : '' }}>Phama</option>
                 <option value="Podcast" {{ old('genre', $song->genre) == 'Podcast' ? 'selected' : '' }}>Podcast</option>
                 <option value="Losar" {{ old('genre', $song->genre) == 'Losar' ? 'selected' : '' }}>Losar</option>
+                <option value="Favourites" {{ old('genre', $song->genre) == 'Favourites' ? 'selected' : '' }}>Favourites</option>
             </select>
         </div>
 

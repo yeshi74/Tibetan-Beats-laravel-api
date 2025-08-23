@@ -65,4 +65,47 @@ class AuthController extends Controller
     public function user(Request $req) {
         return response()->json($req->user());
     }
+
+    public function updateProfile(Request $req)
+    {
+        $req->validate([
+            'name' => 'required|string|min:2|max:255',
+            // If you want to allow email change later, add:
+            // 'email' => 'nullable|email|unique:users,email,' . $req->user()->id,
+        ]);
+
+        $user = $req->user();
+        $user->name = $req->name;
+        $user->save();
+
+        return response()->json([
+            'message' => 'Profile updated',
+            'name'    => $user->name,
+            'email'   => $user->email,
+        ]);
+    }
+
+    public function changePassword(Request $req)
+    {
+        $req->validate([
+            'current_password'          => 'required|string',
+            'new_password'              => 'required|string|min:6|confirmed',
+            // client must send new_password_confirmation
+        ]);
+
+        $user = $req->user();
+
+        if (!Hash::check($req->current_password, $user->password)) {
+            return response()->json(['message' => 'Current password is incorrect'], 422);
+        }
+
+        $user->password = Hash::make($req->new_password);
+        $user->save();
+
+        // (Optional) revoke other tokens to force re-login elsewhere:
+        // $user->tokens()->where('id', '!=', $req->user()->currentAccessToken()->id)->delete();
+
+        return response()->json(['message' => 'Password changed successfully']);
+    }
+
 }
