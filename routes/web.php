@@ -49,4 +49,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::resource('playlists', PlaylistController::class);
 });
 
+Route::view('/stripe/cancel', 'stripe.cancel')->name('stripe.cancel');
+
+Route::get('/stripe/success', function (\Illuminate\Http\Request $request) {
+    $sid = $request->query('session_id', '');
+    return view('stripe.success', ['sessionId' => $sid]);
+})->name('stripe.success');
+
 
