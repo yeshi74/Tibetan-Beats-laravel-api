@@ -56,4 +56,7 @@ Route::get('/stripe/success', function (\Illuminate\Http\Request $request) {
     return view('stripe.success', ['sessionId' => $sid]);
 })->name('stripe.success');
 
+Route::view('/checkout/success', 'checkout.success')->name('checkout.success');
+Route::view('/checkout/cancel',  'checkout.cancel')->name('checkout.cancel');
+
 
