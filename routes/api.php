@@ -7,7 +7,8 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\SongApiController;
 use App\Http\Controllers\Api\AlbumApiController;
 use App\Http\Controllers\Api\PlaylistController;
-use App\Http\Controllers\Api\StripeController; // <-- single Stripe controller
+use App\Http\Controllers\Api\StripeController;
+use App\Http\Controllers\Api\DedicationController;
 
 /* -------------------- Public (no auth) -------------------- */
 
@@ -72,7 +73,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/stripe/checkout', [StripeController::class, 'createCheckoutSession']);
     // (optional) billing portal if you add it later:
     // Route::post('/stripe/billing-portal', [StripeController::class, 'createBillingPortal']);
+
+    Route::post('/dedications', [DedicationController::class, 'store']);
 });
+
+// public
+Route::get('/dedications', [DedicationController::class, 'index']);
+Route::get('/songs/{song}/dedications', [DedicationController::class, 'bySong']);
 
 // IAP verify (if you use it)
 Route::post('/iap/verify', [App\Http\Controllers\IapController::class, 'verify']);
