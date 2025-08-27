@@ -1,21 +1,33 @@
 <?php
 
-// app/Models/Dedication.php
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Dedication extends Model
 {
-    protected $fillable = ['user_id','song_id','to_name','message','is_public'];
+    protected $fillable = [
+        'user_id',
+        'song_id',
+        'to_name',
+        'message',
+        // keep this in fillable; if the column doesn't exist the controller won't send it
+        'to_user_id',
+    ];
 
-    public function user(): BelongsTo {
-        return $this->belongsTo(User::class);
+    public function user()
+    {
+        return $this->belongsTo(\App\Models\User::class);
     }
 
-    public function song(): BelongsTo {
-        return $this->belongsTo(Song::class);
+    public function song()
+    {
+        return $this->belongsTo(\App\Models\Song::class);
+    }
+
+    // receiver (optional)
+    public function toUser()
+    {
+        return $this->belongsTo(\App\Models\User::class, 'to_user_id');
     }
 }
-

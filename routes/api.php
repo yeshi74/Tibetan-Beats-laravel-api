@@ -75,6 +75,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // Route::post('/stripe/billing-portal', [StripeController::class, 'createBillingPortal']);
 
     Route::post('/dedications', [DedicationController::class, 'store']);
+
+    Route::get('/users/search', [\App\Http\Controllers\Api\UserSearchController::class, 'search']);
+    
 });
 
 // public

@@ -1,95 +1,138 @@
 <?php
 
-// app/Http/Controllers/Api/DedicationController.php
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Dedication;
 use App\Models\Song;
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 class DedicationController extends Controller
 {
-    // Public feed of recent public dedications
-    public function index(Request $request) {
-        $items = Dedication::with(['user:id,name', 'song:id,title,artist'])
-            ->where('is_public', true)
-            ->latest()
-            ->take(100)
-            ->get()
-            ->map(function ($d) {
-                return [
-                    'id'        => $d->id,
-                    'to_name'   => $d->to_name,
-                    'message'   => $d->message,
-                    'created_at'=> optional($d->created_at)->toIso8601String(),
-                    'user'      => ['id' => $d->user->id, 'name' => $d->user->name],
-                    'song'      => [
-                        'id' => $d->song->id,
-                        'title' => $d->song->title,
+    /**
+     * GET /api/dedications  (public feed)
+     */
+    public function index(Request $request)
+    {
+        try {
+            $with = ['user:id,name', 'song:id,title,artist'];
+            if (Schema::hasColumn('dedications', 'to_user_id')) {
+                $with[] = 'toUser:id,name';
+            }
+
+            $items = Dedication::with($with)->latest()->get();
+
+            return response()->json([
+                'status' => 'success',
+                'data'   => $items->map(function ($d) {
+                    return [
+                        'id'         => $d->id,
+                        'to_name'    => (string) $d->to_name,
+                        'message'    => (string) $d->message,
+                        'created_at' => optional($d->created_at)->toIso8601String(),
+                        'user'       => $d->user ? [
+                            'id'   => $d->user->id,
+                            'name' => $d->user->name,
+                        ] : null,
+                        'song'       => $d->song ? [
+                            'id'     => $d->song->id,
+                            'title'  => $d->song->title,
+                            'artist' => $d->song->artist,
+                        ] : null,
+                        // include receiver summary if the column exists
+                        'to_user'    => (Schema::hasColumn('dedications', 'to_user_id') && $d->toUser) ? [
+                            'id'   => $d->toUser->id,
+                            'name' => $d->toUser->name,
+                        ] : null,
+                    ];
+                }),
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('[Dedications] index failed', ['error' => $e->getMessage()]);
+            return response()->json(['status' => 'error', 'message' => 'Failed to fetch dedications'], 500);
+        }
+    }
+
+    /**
+     * POST /api/dedications  (auth)
+     * Accepts EITHER to_name OR to_user_id
+     */
+    public function store(Request $request)
+    {
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 401);
+        }
+
+        // validate: require one of to_name or to_user_id
+        $validated = $request->validate([
+            'song_id'     => 'required|exists:songs,id',
+            'message'     => 'required|string|max:300',
+            'to_name'     => 'nullable|string|max:80|required_without:to_user_id',
+            'to_user_id'  => 'nullable|integer|exists:users,id|required_without:to_name',
+        ]);
+
+        try {
+            $song = Song::findOrFail($validated['song_id']);
+
+            $toUserId = $validated['to_user_id'] ?? null;
+            $toName   = $validated['to_name'] ?? null;
+
+            // If tagging a real user, auto-fill to_name from that user if not provided
+            if ($toUserId && !$toName) {
+                $to = User::find($toUserId);
+                $toName = $to?->name ?? 'Someone special';
+            }
+
+            $data = [
+                'user_id' => $user->id,
+                'song_id' => $song->id,
+                'to_name' => $toName ?? 'Someone',
+                'message' => $validated['message'],
+            ];
+
+            // Only set to_user_id if the column exists in your DB (safe even if you didn't add it yet)
+            if ($toUserId && Schema::hasColumn('dedications', 'to_user_id')) {
+                $data['to_user_id'] = $toUserId;
+            }
+
+            $d = Dedication::create($data);
+
+            // Load relations for response
+            $with = ['user:id,name', 'song:id,title,artist'];
+            if (Schema::hasColumn('dedications', 'to_user_id')) {
+                $with[] = 'toUser:id,name';
+            }
+            $d->load($with);
+
+            return response()->json([
+                'status' => 'success',
+                'data'   => [
+                    'id'         => $d->id,
+                    'to_name'    => $d->to_name,
+                    'message'    => $d->message,
+                    'created_at' => optional($d->created_at)->toIso8601String(),
+                    'user'       => [
+                        'id'   => $d->user->id,
+                        'name' => $d->user->name,
+                    ],
+                    'song'       => [
+                        'id'     => $d->song->id,
+                        'title'  => $d->song->title,
                         'artist' => $d->song->artist,
                     ],
-                ];
-            });
-
-        return response()->json(['status'=>'success','data'=>$items]);
-    }
-
-    // Public: list dedications for a given song
-    public function bySong(Request $request, Song $song) {
-        $items = Dedication::with(['user:id,name'])
-            ->where('song_id', $song->id)
-            ->where('is_public', true)
-            ->latest()
-            ->take(100)
-            ->get()
-            ->map(function ($d) use ($song) {
-                return [
-                    'id'        => $d->id,
-                    'to_name'   => $d->to_name,
-                    'message'   => $d->message,
-                    'created_at'=> optional($d->created_at)->toIso8601String(),
-                    'user'      => ['id' => $d->user->id, 'name' => $d->user->name],
-                    'song'      => [
-                        'id' => $song->id,
-                        'title' => $song->title,
-                        'artist' => $song->artist,
-                    ],
-                ];
-            });
-
-        return response()->json(['status'=>'success','data'=>$items]);
-    }
-
-    // Authenticated: create dedication
-    public function store(Request $request) {
-        $user = $request->user();
-        if (!$user) return response()->json(['message'=>'Unauthorized'], 401);
-
-        $data = $request->validate([
-            'song_id'   => 'required|exists:songs,id',
-            'to_name'   => 'required|string|max:120',
-            'message'   => 'required|string|max:280',
-            'is_public' => 'sometimes|boolean',
-        ]);
-
-        $d = Dedication::create([
-            'user_id'   => $user->id,
-            'song_id'   => $data['song_id'],
-            'to_name'   => $data['to_name'],
-            'message'   => $data['message'],
-            'is_public' => $data['is_public'] ?? true,
-        ]);
-
-        return response()->json([
-            'status' => 'success',
-            'data'   => [
-                'id' => $d->id,
-                'to_name' => $d->to_name,
-                'message' => $d->message,
-                'created_at' => optional($d->created_at)->toIso8601String(),
-            ]
-        ], 201);
+                    'to_user'    => (Schema::hasColumn('dedications', 'to_user_id') && $d->toUser) ? [
+                        'id'   => $d->toUser->id,
+                        'name' => $d->toUser->name,
+                    ] : null,
+                ],
+            ], 201);
+        } catch (\Throwable $e) {
+            Log::error('[Dedications] store failed', ['error' => $e->getMessage()]);
+            return response()->json(['status' => 'error', 'message' => 'Could not save dedication'], 500);
+        }
     }
 }
-
