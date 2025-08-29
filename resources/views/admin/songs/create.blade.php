@@ -55,6 +55,7 @@
                     <option value="Podcast">Podcast</option>
                     <option value="Phama">Phama</option>
                     <option value="Favourites">Favourites</option>
+                    <option value="hhdl">Dalai Lama's teachings</option>
                 </select>
             </div>
 

@@ -69,15 +69,19 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/playlists/{playlist}/songs', [PlaylistController::class, 'addSong']);
     Route::delete('/playlists/{playlist}/songs/{song}', [PlaylistController::class, 'removeSong']);
 
-    // Stripe checkout (create session) — authenticated
-    Route::post('/stripe/checkout', [StripeController::class, 'createCheckoutSession']);
-    // (optional) billing portal if you add it later:
-    // Route::post('/stripe/billing-portal', [StripeController::class, 'createBillingPortal']);
-
     Route::post('/dedications', [DedicationController::class, 'store']);
 
     Route::get('/users/search', [\App\Http\Controllers\Api\UserSearchController::class, 'search']);
-    
+
+
+    // Stripe checkout (create session)
+    Route::post('/stripe/checkout', [StripeController::class, 'createCheckoutSession']);
+
+    // ✅ Customer Billing Portal (manage/cancel/change plan)
+    Route::post('/stripe/billing-portal', [StripeController::class, 'createBillingPortal']);
+
+    Route::post('/stripe/confirm', [StripeController::class, 'confirmAfterCheckout']);
+
 });
 
 // public

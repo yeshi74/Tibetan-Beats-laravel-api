@@ -60,3 +60,9 @@ Route::view('/checkout/success', 'checkout.success')->name('checkout.success');
 Route::view('/checkout/cancel',  'checkout.cancel')->name('checkout.cancel');
 
 
+Route::get('/billing/return', function () {
+    return response('<h2>Thanks!</h2><p>You can close this window and return to the app.</p>', 200)
+        ->header('Content-Type', 'text/html');
+});
+
+
