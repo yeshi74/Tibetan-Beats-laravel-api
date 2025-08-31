@@ -18,12 +18,12 @@ class DedicationController extends Controller
     public function index(Request $request)
     {
         try {
-            $with = ['user:id,name', 'song:id,title,artist'];
-            if (Schema::hasColumn('dedications', 'to_user_id')) {
+            $with = ['user:id,name,profile_image', 'song:id,title,artist'];
+            if (\Schema::hasColumn('dedications', 'to_user_id')) {
                 $with[] = 'toUser:id,name';
             }
 
-            $items = Dedication::with($with)->latest()->get();
+            $items = \App\Models\Dedication::with($with)->latest()->get();
 
             return response()->json([
                 'status' => 'success',
@@ -34,16 +34,16 @@ class DedicationController extends Controller
                         'message'    => (string) $d->message,
                         'created_at' => optional($d->created_at)->toIso8601String(),
                         'user'       => $d->user ? [
-                            'id'   => $d->user->id,
-                            'name' => $d->user->name,
+                            'id'                => $d->user->id,
+                            'name'              => $d->user->name,
+                            'profile_image_url' => $d->user->profile_image_url, // ✅ include here
                         ] : null,
                         'song'       => $d->song ? [
                             'id'     => $d->song->id,
                             'title'  => $d->song->title,
                             'artist' => $d->song->artist,
                         ] : null,
-                        // include receiver summary if the column exists
-                        'to_user'    => (Schema::hasColumn('dedications', 'to_user_id') && $d->toUser) ? [
+                        'to_user'    => (\Schema::hasColumn('dedications', 'to_user_id') && $d->toUser) ? [
                             'id'   => $d->toUser->id,
                             'name' => $d->toUser->name,
                         ] : null,
@@ -51,10 +51,11 @@ class DedicationController extends Controller
                 }),
             ]);
         } catch (\Throwable $e) {
-            Log::error('[Dedications] index failed', ['error' => $e->getMessage()]);
+            \Log::error('[Dedications] index failed', ['error' => $e->getMessage()]);
             return response()->json(['status' => 'error', 'message' => 'Failed to fetch dedications'], 500);
         }
     }
+
 
     /**
      * POST /api/dedications  (auth)
