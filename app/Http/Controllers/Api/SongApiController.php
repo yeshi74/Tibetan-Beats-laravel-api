@@ -423,6 +423,31 @@ class SongApiController extends Controller
         ]);
     }
 
+    public function mostLiked(Request $request)
+    {
+        $user = $request->user();
+        $likedIds = $user
+            ? DB::table('liked_songs')->where('user_id', $user->id)->pluck('song_id')->toArray()
+            : [];
+
+        $songs = Song::select('songs.*')
+            ->leftJoin('liked_songs', 'songs.id', '=', 'liked_songs.song_id')
+            ->selectRaw('COUNT(liked_songs.id) as likes_count')
+            ->groupBy('songs.id')
+            ->orderByDesc('likes_count')
+            ->take(15)
+            ->get()
+            ->map(fn ($s) => $this->transformSong($request, $s, $likedIds));
+
+        return response()->json([
+            'status' => 'success',
+            'data'   => $songs,
+        ]);
+    }
+
+
+
+
     public function download(Request $request, Song $song)
     {
         $user = $request->user();

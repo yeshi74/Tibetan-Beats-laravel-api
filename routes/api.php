@@ -24,6 +24,8 @@ Route::get('/songs', [SongApiController::class, 'index']);
 
 Route::get('/songs/most-played', [SongApiController::class, 'mostPlayed']);
 
+Route::get('/songs/most-liked', [SongApiController::class, 'mostLiked']);
+
 Route::post('/songs/{id}/play', [SongController::class, 'incrementPlayCount']);
 
 Route::get('/songs/{id}', [SongApiController::class, 'show']); // keep only once
@@ -106,6 +108,8 @@ Route::post('/songs/{song}/played', [SongApiController::class, 'markPlayed']);
 
 Route::post('/forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail']);
 Route::post('/reset-password', [ForgotPasswordController::class, 'reset']);
+
+
 
 
 

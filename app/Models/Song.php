@@ -27,6 +27,12 @@
         {
             return asset('storage/' . $this->cover_image);
         }
+
+        public function likes()
+        {
+            return $this->belongsToMany(User::class, 'song_user_likes'); 
+        }
+
     }
 
 
