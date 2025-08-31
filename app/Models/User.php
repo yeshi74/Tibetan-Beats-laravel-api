@@ -27,7 +27,7 @@ class User extends Authenticatable
         'is_admin',
         'mobile',
         'otp_code',
-        'otp_expires_at'
+        'otp_expires_at','profile_image'
     ];
 
     protected $casts = [
@@ -44,6 +44,8 @@ class User extends Authenticatable
         'password',
         'remember_token',
     ];
+
+    protected $appends = ['profile_image_url'];
 
     /**
      * Get the attributes that should be cast.
@@ -79,6 +81,14 @@ class User extends Authenticatable
     public function likedBy() {
         return $this->belongsToMany(\App\Models\User::class, 'liked_songs')
                     ->withTimestamps();
+    }
+
+    public function getProfileImageUrlAttribute()
+    {
+        if (!$this->profile_image) {
+            return null;
+        }
+        return asset('storage/' . $this->profile_image);
     }
 
 }

@@ -5,6 +5,7 @@ use Illuminate\Http\Request;
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\SongApiController;
+use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\AlbumApiController;
 use App\Http\Controllers\Api\PlaylistController;
 use App\Http\Controllers\Api\StripeController;
@@ -87,6 +88,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/stripe/confirm', [StripeController::class, 'confirmAfterCheckout']);
 
+    Route::post('/me/profile-image', [UserController::class, 'updateProfileImage']);
+    Route::get('/me', function (\Illuminate\Http\Request $request) {
+        return $request->user();
+    });
+
 });
 
 // public
@@ -95,5 +101,6 @@ Route::get('/songs/{song}/dedications', [DedicationController::class, 'bySong'])
 
 
 Route::post('/songs/{song}/played', [SongApiController::class, 'markPlayed']);
+
 
 
