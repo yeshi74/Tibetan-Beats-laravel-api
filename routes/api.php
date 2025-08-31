@@ -18,6 +18,11 @@ Route::get('/songs/genres', [SongApiController::class, 'genres']);
 Route::get('/songs/genre/{genre}', [SongApiController::class, 'byGenre']);
 Route::get('/songs/search', [SongApiController::class, 'search']);
 Route::get('/songs', [SongApiController::class, 'index']);
+
+Route::get('/songs/most-played', [SongApiController::class, 'mostPlayed']);
+
+Route::post('/songs/{id}/play', [SongController::class, 'incrementPlayCount']);
+
 Route::get('/songs/{id}', [SongApiController::class, 'show']); // keep only once
 
 // 🔹 stream route (needed by audio_url)
@@ -88,5 +93,7 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::get('/dedications', [DedicationController::class, 'index']);
 Route::get('/songs/{song}/dedications', [DedicationController::class, 'bySong']);
 
-// IAP verify (if you use it)
-Route::post('/iap/verify', [App\Http\Controllers\IapController::class, 'verify']);
+
+Route::post('/songs/{song}/played', [SongApiController::class, 'markPlayed']);
+
+

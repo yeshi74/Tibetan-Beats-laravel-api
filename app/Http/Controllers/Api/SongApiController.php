@@ -71,6 +71,9 @@ class SongApiController extends Controller
     public function stream($id)
     {
         $song = Song::findOrFail($id);
+
+        $song->increment('play_count');
+
         $filePath = storage_path('app/public/' . $song->file_path);
 
         if (!file_exists($filePath)) {
@@ -117,6 +120,40 @@ class SongApiController extends Controller
         fclose($fp);
     }
 
+
+    public function mostPlayed()
+    {
+        $songs = \App\Models\Song::orderByDesc('play_count')
+            ->take(12)
+            ->get();
+
+        return response()->json([
+            'status' => 'success',
+            'data'   => $songs,
+        ]);
+    }
+
+    public function markPlayed(\App\Models\Song $song)
+    {
+        // Lightweight increment; no auth needed
+        $song->increment('play_count');
+        return response()->json(['status' => 'ok', 'play_count' => $song->play_count]);
+    }
+
+
+    public function incrementPlayCount($id)
+    {
+        $song = Song::findOrFail($id);
+        $song->increment('play_count');
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Play count updated',
+            'data'   => $song,
+        ]);
+    }
+
+
     /**
      * GET /api/songs/search?q=
      */
@@ -150,6 +187,8 @@ class SongApiController extends Controller
         $likedIds = $user
             ? DB::table('liked_songs')->where('user_id', $user->id)->pluck('song_id')->toArray()
             : [];
+
+        $song->increment('play_count');
 
         return response()->json([
             'status' => 'success',

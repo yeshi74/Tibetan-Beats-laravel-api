@@ -46,7 +46,7 @@
                 <option value="Podcast" {{ old('genre', $song->genre) == 'Podcast' ? 'selected' : '' }}>Podcast</option>
                 <option value="Losar" {{ old('genre', $song->genre) == 'Losar' ? 'selected' : '' }}>Losar</option>
                 <option value="Favourites" {{ old('genre', $song->genre) == 'Favourites' ? 'selected' : '' }}>Favourites</option>
-                <option value="hhdl" {{ old('genre', $song->genre) == 'Dalai Lama's teachings' ? 'selected' : '' }}>Dalai Lama's teachings</option>
+                <option value="Wisdom of His Holiness" {{ old('genre', $song->genre) == 'Wisdom of His Holiness' ? 'selected' : '' }}>Wisdom of His Holiness</option>
 
             </select>
         </div>
