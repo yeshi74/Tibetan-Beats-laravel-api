@@ -20,7 +20,7 @@ class DedicationController extends Controller
         try {
             $with = ['user:id,name,profile_image', 'song:id,title,artist'];
             if (\Schema::hasColumn('dedications', 'to_user_id')) {
-                $with[] = 'toUser:id,name';
+                $with[] = 'toUser:id,name,profile_image'; // ✅ include profile_image
             }
 
             $items = \App\Models\Dedication::with($with)->latest()->get();
@@ -43,11 +43,12 @@ class DedicationController extends Controller
                             'title'  => $d->song->title,
                             'artist' => $d->song->artist,
                         ] : null,
-                        'to_user'    => (\Schema::hasColumn('dedications', 'to_user_id') && $d->toUser) ? [
-                            'id'   => $d->toUser->id,
-                            'name' => $d->toUser->name,
-                        ] : null,
-                    ];
+                        'to_user' => (\Schema::hasColumn('dedications', 'to_user_id') && $d->toUser) ? [
+                        'id' => $d->toUser->id,
+                        'name' => $d->toUser->name,
+                        'profile_image_url' => $d->toUser->profile_image_url, // ✅ now works
+                    ] : null,
+                                        ];
                 }),
             ]);
         } catch (\Throwable $e) {
@@ -117,18 +118,20 @@ class DedicationController extends Controller
                     'message'    => $d->message,
                     'created_at' => optional($d->created_at)->toIso8601String(),
                     'user'       => [
-                        'id'   => $d->user->id,
-                        'name' => $d->user->name,
-                    ],
-                    'song'       => [
-                        'id'     => $d->song->id,
-                        'title'  => $d->song->title,
-                        'artist' => $d->song->artist,
-                    ],
-                    'to_user'    => (Schema::hasColumn('dedications', 'to_user_id') && $d->toUser) ? [
-                        'id'   => $d->toUser->id,
-                        'name' => $d->toUser->name,
-                    ] : null,
+                    'id'                => $d->user->id,
+                    'name'              => $d->user->name,
+                    'profile_image_url' => $d->user->profile_image_url,
+                ],
+                'song'       => [
+                    'id'     => $d->song->id,
+                    'title'  => $d->song->title,
+                    'artist' => $d->song->artist,
+                ],
+                'to_user'    => (Schema::hasColumn('dedications', 'to_user_id') && $d->toUser) ? [
+                    'id'                => $d->toUser->id,
+                    'name'              => $d->toUser->name,
+                    'profile_image_url' => $d->toUser->profile_image_url,
+                ] : null,
                 ],
             ], 201);
         } catch (\Throwable $e) {
