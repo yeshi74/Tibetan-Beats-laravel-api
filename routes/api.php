@@ -10,6 +10,8 @@ use App\Http\Controllers\Api\AlbumApiController;
 use App\Http\Controllers\Api\PlaylistController;
 use App\Http\Controllers\Api\StripeController;
 use App\Http\Controllers\Api\DedicationController;
+use App\Http\Controllers\Api\PasswordResetController;
+use App\Http\Controllers\Api\ForgotPasswordController;
 
 /* -------------------- Public (no auth) -------------------- */
 
@@ -101,6 +103,10 @@ Route::get('/songs/{song}/dedications', [DedicationController::class, 'bySong'])
 
 
 Route::post('/songs/{song}/played', [SongApiController::class, 'markPlayed']);
+
+Route::post('/forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail']);
+Route::post('/reset-password', [ForgotPasswordController::class, 'reset']);
+
 
 
 

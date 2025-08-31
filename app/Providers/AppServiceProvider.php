@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Auth\Notifications\ResetPassword;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -19,18 +20,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        
-    //         VerifyEmail::toMailUsing(function ($notifiable, $url) {
-    //     // Instead of Laravel's default /login redirect,
-    //     // send them to your frontend / Flutter deep link
-    //     $frontendUrl = config('app.frontend_url') . '/verify-email?verify_url=' . urlencode($url);
-
-    //     return (new MailMessage)
-    //         ->subject('Verify Your Email Address')
-    //         ->line('Click the button below to verify your email address.')
-    //         ->action('Verify Email', $frontendUrl)
-    //         ->line('If you did not create an account, no further action is required.');
-    // });
-
+        // ✅ Override the default password reset URL for API usage
+        ResetPassword::createUrlUsing(function ($user, string $token) {
+            return config('app.frontend_url') . '/reset-password?token=' . $token . '&email=' . urlencode($user->email);
+        });
     }
 }
