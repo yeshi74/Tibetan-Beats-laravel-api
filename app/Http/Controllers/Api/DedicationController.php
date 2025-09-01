@@ -63,61 +63,83 @@ class DedicationController extends Controller
      * Accepts EITHER to_name OR to_user_id
      */
     public function store(Request $request)
-    {
-        $user = $request->user();
-        if (!$user) {
-            return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 401);
+{
+    $user = $request->user();
+    if (!$user) {
+        return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 401);
+    }
+
+    // validate: require one of to_name or to_user_id
+    $validated = $request->validate([
+        'song_id'     => 'required|exists:songs,id',
+        'message'     => 'required|string|max:300',
+        'to_name'     => 'nullable|string|max:80|required_without:to_user_id',
+        'to_user_id'  => 'nullable|integer|exists:users,id|required_without:to_name',
+    ]);
+
+    try {
+        $song = Song::findOrFail($validated['song_id']);
+
+        $toUserId = $validated['to_user_id'] ?? null;
+        $toName   = $validated['to_name'] ?? null;
+
+        // If tagging a real user, auto-fill to_name from that user if not provided
+        if ($toUserId && !$toName) {
+            $to = User::find($toUserId);
+            $toName = $to?->name ?? 'Someone special';
         }
 
-        // validate: require one of to_name or to_user_id
-        $validated = $request->validate([
-            'song_id'     => 'required|exists:songs,id',
-            'message'     => 'required|string|max:300',
-            'to_name'     => 'nullable|string|max:80|required_without:to_user_id',
-            'to_user_id'  => 'nullable|integer|exists:users,id|required_without:to_name',
-        ]);
+        // ================== Dedication Limits ==================
+        $countToday = Dedication::where('user_id', $user->id)
+            ->whereDate('created_at', now()->toDateString())
+            ->count();
 
-        try {
-            $song = Song::findOrFail($validated['song_id']);
+        $limit = $user->is_premium ? 15 : 2;
 
-            $toUserId = $validated['to_user_id'] ?? null;
-            $toName   = $validated['to_name'] ?? null;
-
-            // If tagging a real user, auto-fill to_name from that user if not provided
-            if ($toUserId && !$toName) {
-                $to = User::find($toUserId);
-                $toName = $to?->name ?? 'Someone special';
-            }
-
-            $data = [
-                'user_id' => $user->id,
-                'song_id' => $song->id,
-                'to_name' => $toName ?? 'Someone',
-                'message' => $validated['message'],
-            ];
-
-            // Only set to_user_id if the column exists in your DB (safe even if you didn't add it yet)
-            if ($toUserId && Schema::hasColumn('dedications', 'to_user_id')) {
-                $data['to_user_id'] = $toUserId;
-            }
-
-            $d = Dedication::create($data);
-
-            // Load relations for response
-            $with = ['user:id,name', 'song:id,title,artist'];
-            if (Schema::hasColumn('dedications', 'to_user_id')) {
-                $with[] = 'toUser:id,name';
-            }
-            $d->load($with);
-
+        if ($countToday >= $limit) {
             return response()->json([
-                'status' => 'success',
-                'data'   => [
-                    'id'         => $d->id,
-                    'to_name'    => $d->to_name,
-                    'message'    => $d->message,
-                    'created_at' => optional($d->created_at)->toIso8601String(),
-                    'user'       => [
+                'status'    => 'error',
+                'message'   => 'Your daily dedication limit has been reached. Go Premium for more.',
+                'remaining' => 0,
+            ], 403);
+        }
+
+        // Build dedication payload
+        $data = [
+            'user_id' => $user->id,
+            'song_id' => $song->id,
+            'to_name' => $toName ?? 'Someone',
+            'message' => $validated['message'],
+        ];
+
+        if ($toUserId && Schema::hasColumn('dedications', 'to_user_id')) {
+            $data['to_user_id'] = $toUserId;
+        }
+
+        // Save
+        $d = Dedication::create($data);
+
+        // Now increment count
+        $countToday++;
+        $remaining = max($limit - $countToday, 0);
+
+        // Load relations for response
+        $with = ['user:id,name,profile_image_url', 'song:id,title,artist'];
+        if (Schema::hasColumn('dedications', 'to_user_id')) {
+            $with[] = 'toUser:id,name,profile_image_url';
+        }
+        $d->load($with);
+
+        return response()->json([
+            'status'    => 'success',
+            'message'   => 'Dedication sent successfully',
+            'remaining' => $remaining,
+            'data'      => [
+                'id'         => $d->id,
+                'to_name'    => $d->to_name,
+                'message'    => $d->message,
+                'created_at' => optional($d->created_at)->toIso8601String(),
+                'user'       => [
                     'id'                => $d->user->id,
                     'name'              => $d->user->name,
                     'profile_image_url' => $d->user->profile_image_url,
@@ -132,11 +154,14 @@ class DedicationController extends Controller
                     'name'              => $d->toUser->name,
                     'profile_image_url' => $d->toUser->profile_image_url,
                 ] : null,
-                ],
-            ], 201);
-        } catch (\Throwable $e) {
-            Log::error('[Dedications] store failed', ['error' => $e->getMessage()]);
-            return response()->json(['status' => 'error', 'message' => 'Could not save dedication'], 500);
-        }
+            ],
+        ], 201);
+    } catch (\Throwable $e) {
+        Log::error('[Dedications] store failed', ['error' => $e->getMessage()]);
+        return response()->json(['status' => 'error', 'message' => 'Could not save dedication'], 500);
     }
+}
+
+
+
 }
