@@ -15,6 +15,8 @@ class Dedication extends Model
         'to_user_id',
     ];
 
+    protected $appends = ['cover_image_url'];
+
     public function user()
     {
         return $this->belongsTo(\App\Models\User::class);
@@ -30,4 +32,10 @@ class Dedication extends Model
     {
         return $this->belongsTo(\App\Models\User::class, 'to_user_id');
     }
+
+    public function getCoverImageUrlAttribute()
+    {
+        return $this->song?->cover_image_url;
+    }
+    
 }

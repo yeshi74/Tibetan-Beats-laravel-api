@@ -16,46 +16,69 @@ class DedicationController extends Controller
      * GET /api/dedications  (public feed)
      */
     public function index(Request $request)
-    {
-        try {
-            $with = ['user:id,name,profile_image', 'song:id,title,artist'];
-            if (\Schema::hasColumn('dedications', 'to_user_id')) {
-                $with[] = 'toUser:id,name,profile_image'; // ✅ include profile_image
-            }
+{
+    try {
+        $perPage = (int) $request->get('per_page', 20); // default 20
+        $page    = (int) $request->get('page', 1);
 
-            $items = \App\Models\Dedication::with($with)->latest()->get();
+        $with = [
+            'user:id,name,profile_image', 
+            'song:id,title,artist,cover_image'
+        ];
 
-            return response()->json([
-                'status' => 'success',
-                'data'   => $items->map(function ($d) {
-                    return [
-                        'id'         => $d->id,
-                        'to_name'    => (string) $d->to_name,
-                        'message'    => (string) $d->message,
-                        'created_at' => optional($d->created_at)->toIso8601String(),
-                        'user'       => $d->user ? [
-                            'id'                => $d->user->id,
-                            'name'              => $d->user->name,
-                            'profile_image_url' => $d->user->profile_image_url, // ✅ include here
-                        ] : null,
-                        'song'       => $d->song ? [
-                            'id'     => $d->song->id,
-                            'title'  => $d->song->title,
-                            'artist' => $d->song->artist,
-                        ] : null,
-                        'to_user' => (\Schema::hasColumn('dedications', 'to_user_id') && $d->toUser) ? [
-                        'id' => $d->toUser->id,
-                        'name' => $d->toUser->name,
-                        'profile_image_url' => $d->toUser->profile_image_url, // ✅ now works
-                    ] : null,
-                                        ];
-                }),
-            ]);
-        } catch (\Throwable $e) {
-            \Log::error('[Dedications] index failed', ['error' => $e->getMessage()]);
-            return response()->json(['status' => 'error', 'message' => 'Failed to fetch dedications'], 500);
+        if (\Schema::hasColumn('dedications', 'to_user_id')) {
+            $with[] = 'toUser:id,name,profile_image';
         }
+
+        $query = \App\Models\Dedication::with($with)->latest();
+
+        $items = $query->paginate($perPage, ['*'], 'page', $page);
+
+        return response()->json([
+            'status' => 'success',
+            'data'   => $items->getCollection()->map(function ($d) {
+                return [
+                    'id'              => $d->id,
+                    'to_name'         => (string) $d->to_name,
+                    'message'         => (string) $d->message,
+                    'created_at'      => optional($d->created_at)->toIso8601String(),
+                    'cover_image_url' => $d->cover_image_url, // 👈 from Dedication accessor
+                    'user'            => $d->user ? [
+                        'id'                => $d->user->id,
+                        'name'              => $d->user->name,
+                        'profile_image_url' => $d->user->profile_image_url,
+                    ] : null,
+                    'song'            => $d->song ? [
+                        'id'              => $d->song->id,
+                        'title'           => $d->song->title,
+                        'artist'          => $d->song->artist,
+                        'cover_image_url' => $d->song->cover_image_url,
+                    ] : null,
+                    'to_user' => (\Schema::hasColumn('dedications', 'to_user_id') && $d->toUser) ? [
+                        'id'                => $d->toUser->id,
+                        'name'              => $d->toUser->name,
+                        'profile_image_url' => $d->toUser->profile_image_url,
+                    ] : null,
+                ];
+            }),
+            'meta' => [
+                'current_page' => $items->currentPage(),
+                'last_page'    => $items->lastPage(),
+                'per_page'     => $items->perPage(),
+                'total'        => $items->total(),
+            ]
+        ]);
+    } catch (\Throwable $e) {
+        \Log::error('[Dedications] index failed', ['error' => $e->getMessage()]);
+        return response()->json([
+            'status' => 'error', 
+            'message' => 'Failed to fetch dedications'
+        ], 500);
     }
+}
+
+
+
 
 
     /**
@@ -144,6 +167,7 @@ class DedicationController extends Controller
                     'to_name'    => $d->to_name,
                     'message'    => $d->message,
                     'created_at' => optional($d->created_at)->toIso8601String(),
+                    'cover_image_url' => $d->cover_image_url,
                     'user'       => [
                         'id'                => $d->user->id,
                         'name'              => $d->user->name,
