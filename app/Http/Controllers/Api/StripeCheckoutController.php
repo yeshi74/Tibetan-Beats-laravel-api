@@ -9,34 +9,87 @@ use Stripe\StripeClient;
 
 class StripeCheckoutController extends Controller
 {
+    /**
+     * Generic checkout creation using explicit price_id from request
+     */
+public function create(Request $request)
+{
+    $request->validate([
+        'plan' => 'required|string|in:monthly,yearly',
+    ]);
 
-    public function create(Request $request)
+    $user = $request->user();
+    $stripe = new \Stripe\StripeClient(config('services.stripe.secret'));
+
+    // Map frontend plan to Stripe price IDs
+    $priceId = $request->plan === 'yearly'
+        ? env('STRIPE_PRICE_YEARLY')   // set in .env
+        : env('STRIPE_PRICE_MONTHLY'); // set in .env
+
+    $session = $stripe->checkout->sessions->create([
+        'mode' => 'subscription',
+        'line_items' => [[
+            'price'    => $priceId,
+            'quantity' => 1,
+        ]],
+        'success_url' => config('app.url') . '/stripe/success?session_id={CHECKOUT_SESSION_ID}',
+        'cancel_url'  => config('app.url') . '/stripe/cancel',
+        'client_reference_id' => (string) $user->id,
+        'customer_email'      => $user->email,
+        'metadata'            => [
+            'user_id' => (string) $user->id,
+            'email'   => $user->email,
+            'plan'    => $request->plan,
+        ],
+    ]);
+
+    return response()->json([
+        'id'  => $session->id,
+        'url' => $session->url,
+    ]);
+}
+
+
+    /**
+     * Checkout creation that accepts "plan" (monthly/yearly) from Flutter
+     */
+    public function createCheckout(Request $request)
     {
         $request->validate([
-            'price_id' => 'required|string', // your recurring price id from Stripe
+            'plan' => 'nullable|string|in:monthly,yearly',
         ]);
 
-        $user = $request->user();
-        $stripe = new StripeClient(config('services.stripe.secret'));
+        \Stripe\Stripe::setApiKey(env('STRIPE_SECRET'));
 
-        $session = $stripe->checkout->sessions->create([
+        $user = $request->user();
+        $plan = $request->input('plan', 'monthly'); // default monthly
+
+        // 👇 Resolve Stripe price IDs from .env
+        $priceId = $plan === 'yearly'
+            ? env('STRIPE_PRICE_YEARLY')
+            : env('STRIPE_PRICE_MONTHLY');
+
+        if (!$priceId) {
+            return response()->json(['error' => 'Invalid Stripe price ID'], 422);
+        }
+
+        $successUrl = config('app.url').'/premium/success?session_id={CHECKOUT_SESSION_ID}';
+        $cancelUrl  = config('app.url').'/premium/cancel';
+
+        $session = \Stripe\Checkout\Session::create([
             'mode' => 'subscription',
             'line_items' => [[
-                'price'    => $request->price_id,
+                'price' => $priceId,
                 'quantity' => 1,
             ]],
-            'success_url' => config('app.url') . '/stripe/success', // placeholder
-            'cancel_url'  => config('app.url') . '/stripe/cancel',  // placeholder
-
-            // 👇 attach identity
+            'success_url' => $successUrl,
+            'cancel_url'  => $cancelUrl,
             'client_reference_id' => (string) $user->id,
-            'customer_email'      => $user->email,
-            'metadata'            => [
+            'customer_email' => $user->email,
+            'metadata' => [
+                'plan' => $plan,
                 'user_id' => (string) $user->id,
-                'email'   => $user->email,
             ],
-            // optional: collect billing
-            'customer_creation'   => 'if_required',
         ]);
 
         return response()->json([
@@ -44,34 +97,14 @@ class StripeCheckoutController extends Controller
             'url' => $session->url,
         ]);
     }
-    
-    public function createCheckout(Request $request)
-    {
-        \Stripe\Stripe::setApiKey(env('STRIPE_SECRET'));
 
-        $successUrl = config('app.url').'/stripe/success?session_id={CHECKOUT_SESSION_ID}';
-        $cancelUrl  = config('app.url').'/stripe/cancel';
-
-        $session = \Stripe\Checkout\Session::create([
-            'mode' => 'subscription',
-            'line_items' => [[
-                'price' => env('STRIPE_PRICE_ID'),
-                'quantity' => 1,
-            ]],
-            'success_url' => $successUrl,
-            'cancel_url'  => $cancelUrl,
-            'client_reference_id' => (string) auth()->id(),
-            'customer_email' => auth()->user()->email,
-        ]);
-
-        return response()->json(['id' => $session->id, 'url' => $session->url]);
-    }
-        
+    /**
+     * Billing portal (manage subscription)
+     */
     public function createBillingPortal(Request $request)
     {
         $stripe = new StripeClient(config('services.stripe.secret') ?? env('STRIPE_SECRET'));
 
-        // you might want to track/save customer id; this is a simple fallback
         $customerEmail = $request->user()->email;
         $customers = $stripe->customers->all(['email' => $customerEmail, 'limit' => 1]);
         $customer = $customers->data[0] ?? null;
@@ -80,7 +113,7 @@ class StripeCheckoutController extends Controller
             return response()->json(['error' => 'No customer found'], 404);
         }
 
-        $returnUrl = URL::to('/'); // where to send the user after managing billing
+        $returnUrl = URL::to('/');
         $portal = $stripe->billingPortal->sessions->create([
             'customer' => $customer->id,
             'return_url' => $returnUrl,
