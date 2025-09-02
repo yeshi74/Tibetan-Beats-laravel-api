@@ -23,15 +23,24 @@
             return asset('storage/' . $this->file_path);
         }
 
-        public function getCoverImageUrlAttribute()
-        {
-            return asset('storage/' . $this->cover_image);
-        }
-
         public function likes()
         {
             return $this->belongsToMany(User::class, 'song_user_likes'); 
         }
+
+        public function getCoverImageUrlAttribute()
+        {
+            if (!$this->cover_image) {
+                return null;
+            }
+
+            if (str_starts_with($this->cover_image, 'http://') || str_starts_with($this->cover_image, 'https://')) {
+                return $this->cover_image;
+            }
+
+            return asset('storage/' . ltrim($this->cover_image, '/'));
+        }
+
 
     }
 

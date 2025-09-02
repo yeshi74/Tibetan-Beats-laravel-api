@@ -35,7 +35,22 @@ class Dedication extends Model
 
     public function getCoverImageUrlAttribute()
     {
-        return $this->song?->cover_image_url;
+        if ($this->song) {
+            return $this->song->cover_image_url; // ✅ proxies Song accessor
+        }
+        return null;
     }
+
+    public function likes()
+    {
+        return $this->hasMany(DedicationLike::class);
+    }
+
+    public function likedBy(User $user)
+    {
+        return $this->likes()->where('user_id', $user->id)->exists();
+    }
+
     
+
 }

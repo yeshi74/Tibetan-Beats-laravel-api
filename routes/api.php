@@ -97,10 +97,14 @@ Route::middleware('auth:sanctum')->group(function () {
         return $request->user();
     });
 
+    Route::get('/dedications', [DedicationController::class, 'index']);
+    Route::post('/dedications/{dedication}/like', [DedicationController::class, 'like']);
+    Route::post('/dedications/{dedication}/unlike', [DedicationController::class, 'unlike']);
+
 });
 
 // public
-Route::get('/dedications', [DedicationController::class, 'index']);
+
 Route::get('/songs/{song}/dedications', [DedicationController::class, 'bySong']);
 
 

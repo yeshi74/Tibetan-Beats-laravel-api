@@ -88,7 +88,22 @@ class User extends Authenticatable
         if (!$this->profile_image) {
             return null;
         }
-        return asset('storage/' . $this->profile_image);
+
+        // Already an absolute URL
+        if (str_starts_with($this->profile_image, 'http://') || str_starts_with($this->profile_image, 'https://')) {
+            return $this->profile_image;
+        }
+
+        // ✅ Otherwise build from storage
+        return asset('storage/' . ltrim($this->profile_image, '/'));
     }
+
+
+    public function likedDedications()
+    {
+        return $this->belongsToMany(Dedication::class, 'dedication_likes')
+                    ->withTimestamps();
+    }
+
 
 }

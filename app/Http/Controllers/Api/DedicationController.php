@@ -13,52 +13,83 @@ use Illuminate\Support\Facades\Schema;
 class DedicationController extends Controller
 {
     /**
-     * GET /api/dedications  (public feed)
+     * GET /api/dedications  (public feed with filters)
      */
-    public function index(Request $request)
+public function index(Request $request)
 {
     try {
-        $perPage = (int) $request->get('per_page', 20); // default 20
-        $page    = (int) $request->get('page', 1);
+        $filter = $request->get('filter', 'all'); // all | my | received
+        $user   = $request->user();
 
         $with = [
-            'user:id,name,profile_image', 
-            'song:id,title,artist,cover_image'
+            'user:id,name,profile_image',
+            'song:id,title,artist,cover_image',
         ];
 
-        if (\Schema::hasColumn('dedications', 'to_user_id')) {
+        if (Schema::hasColumn('dedications', 'to_user_id')) {
             $with[] = 'toUser:id,name,profile_image';
         }
 
-        $query = \App\Models\Dedication::with($with)->latest();
+        $query = Dedication::with($with)
+            ->withCount('likes')
+            ->latest();
+
+        // ✅ Apply filters
+        if ($filter === 'my') {
+            $query->where('user_id', $user?->id ?? 0);
+        } elseif ($filter === 'received') {
+            if ($user) {
+                $query->where(function ($q) use ($user) {
+                    $q->where('to_user_id', $user->id)
+                      ->orWhere('to_name', $user->name);
+                });
+            } else {
+                $query->whereRaw('0=1');
+            }
+        }
+
+        $perPage = (int) $request->get('per_page', 20);
+        $page    = (int) $request->get('page', 1);
 
         $items = $query->paginate($perPage, ['*'], 'page', $page);
 
+        // ✅ Counts for tabs
+        $counts = [
+            'all'      => Dedication::count(),
+            'my'       => $user ? Dedication::where('user_id', $user->id)->count() : 0,
+            'received' => $user ? Dedication::where('to_user_id', $user->id)
+                                ->orWhere('to_name', $user->name)
+                                ->count() : 0,
+        ];
+
         return response()->json([
             'status' => 'success',
-            'data'   => $items->getCollection()->map(function ($d) {
+            'filter' => $filter,
+            'data'   => $items->getCollection()->map(function ($d) use ($user) {
                 return [
                     'id'              => $d->id,
                     'to_name'         => (string) $d->to_name,
                     'message'         => (string) $d->message,
                     'created_at'      => optional($d->created_at)->toIso8601String(),
-                    'cover_image_url' => $d->cover_image_url, // 👈 from Dedication accessor
-                    'user'            => $d->user ? [
+                    'cover_image_url' => $d->cover_image_url,
+                    'user' => $d->user ? [
                         'id'                => $d->user->id,
                         'name'              => $d->user->name,
                         'profile_image_url' => $d->user->profile_image_url,
                     ] : null,
-                    'song'            => $d->song ? [
+                    'song' => $d->song ? [
                         'id'              => $d->song->id,
                         'title'           => $d->song->title,
                         'artist'          => $d->song->artist,
                         'cover_image_url' => $d->song->cover_image_url,
                     ] : null,
-                    'to_user' => (\Schema::hasColumn('dedications', 'to_user_id') && $d->toUser) ? [
+                    'to_user' => $d->toUser ? [
                         'id'                => $d->toUser->id,
                         'name'              => $d->toUser->name,
                         'profile_image_url' => $d->toUser->profile_image_url,
                     ] : null,
+                    'likes_count' => $d->likes_count,
+                    'is_liked'    => $user ? $d->likedBy($user) : false,
                 ];
             }),
             'meta' => [
@@ -66,12 +97,16 @@ class DedicationController extends Controller
                 'last_page'    => $items->lastPage(),
                 'per_page'     => $items->perPage(),
                 'total'        => $items->total(),
+                'counts'       => $counts, // 👈 extra counts for all/my/received
             ]
         ]);
     } catch (\Throwable $e) {
-        \Log::error('[Dedications] index failed', ['error' => $e->getMessage()]);
+        Log::error('[Dedications] index failed', [
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString(),
+        ]);
         return response()->json([
-            'status' => 'error', 
+            'status'  => 'error',
             'message' => 'Failed to fetch dedications'
         ], 500);
     }
@@ -81,13 +116,9 @@ class DedicationController extends Controller
 
 
 
-    /**
-     * POST /api/dedications  (auth)
-     * Accepts EITHER to_name OR to_user_id
-     */
-    public function store(Request $request)
+public function store(Request $request)
 {
-    $user = $request->user()?->fresh(); // 👈 refresh from DB
+    $user = $request->user()?->fresh();
     if (!$user) {
         return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 401);
     }
@@ -105,78 +136,84 @@ class DedicationController extends Controller
         $toUserId = $validated['to_user_id'] ?? null;
         $toName   = $validated['to_name'] ?? null;
 
-        if ($toUserId && !$toName) {
-            $to = User::find($toUserId);
-            $toName = $to?->name ?? 'Someone special';
-        }
-
-        // ================== Dedication Limits ==================
-        $countToday = Dedication::where('user_id', $user->id)
-            ->whereDate('created_at', now()->toDateString())
-            ->count();
-
-        $isPremium = (bool) $user->is_premium || $user->role === 'premium';
-        $limit = $isPremium ? 15 : 2;
-
-        if ($countToday >= $limit) {
-            return response()->json([
-                'status'    => 'error',
-                'message'   => $isPremium
-                    ? 'Your daily premium dedication limit has been reached.'
-                    : 'Your daily free dedication limit has been reached. Go Premium for more.',
-                'remaining' => 0,
-            ], 403);
-        }
-
-        $data = [
-            'user_id' => $user->id,
-            'song_id' => $song->id,
-            'to_name' => $toName ?? 'Someone',
-            'message' => $validated['message'],
-        ];
-
+        // ✅ Always set both when to_user_id is provided
         if ($toUserId && Schema::hasColumn('dedications', 'to_user_id')) {
-            $data['to_user_id'] = $toUserId;
+            $recipient = User::find($toUserId);
+            $toName = $recipient?->name ?? $toName ?? 'Someone special';
         }
 
-        $d = Dedication::create($data);
+        // --- Dedication Limits ---
+$countToday = Dedication::where('user_id', $user->id)
+    ->whereDate('created_at', now()->toDateString())
+    ->count();
 
-        $countToday++;
-        $remaining = max($limit - $countToday, 0);
+$isPremium = (bool) $user->is_premium || $user->role === 'premium';
+$limit = $isPremium ? null : 2; 
 
-        $with = ['user:id,name,profile_image_url', 'song:id,title,artist'];
-        if (Schema::hasColumn('dedications', 'to_user_id')) {
-            $with[] = 'toUser:id,name';
-        }
-        $d->load($with);
+if (!$isPremium && $limit !== null && $countToday >= $limit) {
+    return response()->json([
+        'status'    => 'error',
+        'message'   => 'Your daily free dedication limit has been reached. Go Premium for unlimited dedications.',
+        'remaining' => 0,
+    ], 403);
+}
 
-        return response()->json([
-            'status'    => 'success',
-            'message'   => 'Dedication sent successfully',
-            'remaining' => $remaining,
-            'data'      => [
-                'id'         => $d->id,
-                'to_name'    => $d->to_name,
-                'message'    => $d->message,
-                'created_at' => optional($d->created_at)->toIso8601String(),
-                'cover_image_url' => $d->cover_image_url,
-                'user'       => [
-                    'id'                => $d->user->id,
-                    'name'              => $d->user->name,
-                    'profile_image_url' => $d->user->profile_image_url,
-                ],
-                'song'       => [
-                    'id'     => $d->song->id,
-                    'title'  => $d->song->title,
-                    'artist' => $d->song->artist,
-                ],
-                'to_user'    => (Schema::hasColumn('dedications', 'to_user_id') && $d->toUser) ? [
-                    'id'                => $d->toUser->id,
-                    'name'              => $d->toUser->name,
-                    'profile_image_url' => $d->toUser->profile_image_url,
-                ] : null,
-            ],
-        ], 201);
+// --- Save Dedication ---
+$data = [
+    'user_id'   => $user->id,
+    'song_id'   => $song->id,
+    'to_name'   => $toName ?? 'Someone',
+    'message'   => $validated['message'],
+];
+
+if ($toUserId && Schema::hasColumn('dedications', 'to_user_id')) {
+    $data['to_user_id'] = $toUserId;
+}
+
+$d = Dedication::create($data);
+
+$countToday++;
+$remaining = $limit ? max($limit - $countToday, 0) : null;
+
+$with = ['user:id,name,profile_image_url', 'song:id,title,artist,cover_image'];
+if (Schema::hasColumn('dedications', 'to_user_id')) {
+    $with[] = 'toUser:id,name,profile_image_url';
+}
+
+$d->load($with)->loadCount('likes');
+
+return response()->json([
+    'status'    => 'success',
+    'message'   => 'Dedication sent successfully',
+    // ✅ only include "remaining" if NOT premium
+    ...( !$isPremium ? ['remaining' => $remaining] : [] ),
+    'data'      => [
+        'id'              => $d->id,
+        'to_name'         => $d->to_name,
+        'message'         => $d->message,
+        'created_at'      => optional($d->created_at)->toIso8601String(),
+        'cover_image_url' => $d->cover_image_url,
+        'user'            => $d->user ? [
+            'id'                => $d->user->id,
+            'name'              => $d->user->name,
+            'profile_image_url' => $d->user->profile_image_url,
+        ] : null,
+        'song'            => $d->song ? [
+            'id'              => $d->song->id,
+            'title'           => $d->song->title,
+            'artist'          => $d->song->artist,
+            'cover_image_url' => $d->song->cover_image_url,
+        ] : null,
+        'to_user'    => (Schema::hasColumn('dedications', 'to_user_id') && $d->toUser) ? [
+            'id'                => $d->toUser->id,
+            'name'              => $d->toUser->name,
+            'profile_image_url' => $d->toUser->profile_image_url,
+        ] : null,
+        'likes_count' => $d->likes_count,
+        'is_liked'    => true,
+    ],
+], 201);
+
     } catch (\Throwable $e) {
         Log::error('[Dedications] store failed', ['error' => $e->getMessage()]);
         return response()->json(['status' => 'error', 'message' => 'Could not save dedication'], 500);
@@ -185,6 +222,31 @@ class DedicationController extends Controller
 
 
 
+    /**
+     * POST /api/dedications/{dedication}/like
+     */
+    public function like(Request $request, Dedication $dedication)
+    {
+        $user = $request->user();
+        $dedication->likes()->firstOrCreate(['user_id' => $user->id]);
 
+        return response()->json([
+            'status'      => 'success',
+            'likes_count' => $dedication->likes()->count(),
+        ]);
+    }
 
+    /**
+     * POST /api/dedications/{dedication}/unlike
+     */
+    public function unlike(Request $request, Dedication $dedication)
+    {
+        $user = $request->user();
+        $dedication->likes()->where('user_id', $user->id)->delete();
+
+        return response()->json([
+            'status'      => 'success',
+            'likes_count' => $dedication->likes()->count(),
+        ]);
+    }
 }
