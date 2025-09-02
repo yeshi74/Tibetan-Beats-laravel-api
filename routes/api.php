@@ -12,7 +12,7 @@ use App\Http\Controllers\Api\StripeController;
 use App\Http\Controllers\Api\DedicationController;
 use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\ForgotPasswordController;
-use GeoIP;
+use Torann\GeoIP\Facades\GeoIP;
 
 /* -------------------- Public (no auth) -------------------- */
 
