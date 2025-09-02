@@ -13,7 +13,7 @@ class UserController extends Controller
         $user = $request->user();
 
         $request->validate([
-            'image' => 'required|image|mimes:jpg,jpeg,png|max:2048',
+            'image' => 'required|image|mimes:jpg,jpeg,png|max:5120',
         ]);
 
         // delete old image if exists
