@@ -18,65 +18,100 @@ class StripeController extends Controller
      * POST /api/stripe/checkout  (auth:sanctum)
      */
     public function createCheckoutSession(Request $request)
-    {
-        try {
-            $request->validate([
-                'plan' => 'required|string|in:monthly,yearly',
-            ]);
+{
+    try {
+        $request->validate([
+            'plan' => 'required|string|in:monthly,yearly',
+        ]);
 
-            $user = $request->user();
-            if (!$user) {
-                return response()->json(['error' => 'Unauthenticated'], 401);
-            }
-
-            $secret = config('services.stripe.secret');
-            if (!$secret) {
-                return response()->json(['error' => 'Stripe secret not configured'], 500);
-            }
-            Stripe::setApiKey($secret);
-
-            // Map frontend plan → Stripe price IDs
-            $plan    = $request->input('plan', 'monthly');
-            $priceId = $plan === 'yearly'
-                ? config('services.stripe.price_yearly')
-                : config('services.stripe.price_monthly');
-
-            if (!$priceId) {
-                return response()->json(['error' => 'Stripe price id not configured'], 500);
-            }
-
-            $session = CheckoutSession::create([
-                'mode'  => 'subscription',
-                'payment_method_types' => ['card'],
-                'line_items' => [[
-                    'price'    => $priceId,
-                    'quantity' => 1,
-                ]],
-                'client_reference_id' => (string) $user->id,
-                'customer_email'      => $user->email,
-                'metadata'            => [
-                    'user_id' => (string) $user->id,
-                    'plan'    => $plan,
-                ],
-                // 👇 Redirect back into your app using deep link
-                'success_url' => 'tibetanmusic://premium/success?session_id={CHECKOUT_SESSION_ID}',
-                'cancel_url'  => 'tibetanmusic://premium/cancel',
-            ]);
-
-            return response()->json(['url' => $session->url], 200);
-
-        } catch (\Throwable $e) {
-            Log::error('[Stripe] createCheckoutSession failed', [
-                'err' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-            return response()->json(['error' => 'Could not create checkout session'], 500);
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['error' => 'Unauthenticated'], 401);
         }
+
+        $secret = config('services.stripe.secret');
+        if (!$secret) {
+            return response()->json(['error' => 'Stripe secret not configured'], 500);
+        }
+        Stripe::setApiKey($secret);
+
+        $plan = $request->input('plan', 'monthly');
+
+        // 🔹 Detect currency (basic: INR for India, USD otherwise)
+        $currency = ($user->country ?? null) === 'IN' ? 'inr' : 'usd';
+
+        // 🔹 Map plan + currency → Stripe Price IDs
+        $priceMap = [
+            'monthly' => [
+                'inr' => config('services.stripe.price_monthly_inr'),
+                'usd' => config('services.stripe.price_monthly_usd'),
+            ],
+            'yearly' => [
+                'inr' => config('services.stripe.price_yearly_inr'),
+                'usd' => config('services.stripe.price_yearly_usd'),
+            ],
+        ];
+
+        $priceId = $priceMap[$plan][$currency] ?? null;
+        if (!$priceId) {
+            return response()->json(['error' => 'Stripe price id not configured'], 500);
+        }
+
+        // 🔹 Fetch price object from Stripe for display
+        $priceObj = \Stripe\Price::retrieve($priceId);
+        $unitAmount = $priceObj->unit_amount ?? 0;
+        $stripeCurrency = strtoupper($priceObj->currency ?? $currency);
+
+        // Convert amount: Stripe stores in smallest unit (cents/paise)
+        $amount = $unitAmount / 100;
+
+        // Map to a symbol
+        $symbol = match (strtoupper($stripeCurrency)) {
+            'USD' => '$',
+            'INR' => '₹',
+            default => strtoupper($stripeCurrency),
+        };
+
+        $session = CheckoutSession::create([
+            'mode'  => 'subscription',
+            'payment_method_types' => ['card'],
+            'line_items' => [[
+                'price'    => $priceId,
+                'quantity' => 1,
+            ]],
+            'client_reference_id' => (string) $user->id,
+            'customer_email'      => $user->email,
+            'metadata'            => [
+                'user_id'  => (string) $user->id,
+                'plan'     => $plan,
+                'currency' => $stripeCurrency,
+            ],
+            // 👇 Redirect back into your app using deep link
+            'success_url' => 'tibetanmusic://premium/success?session_id={CHECKOUT_SESSION_ID}',
+            'cancel_url'  => 'tibetanmusic://premium/cancel',
+        ]);
+
+        return response()->json([
+            'url'      => $session->url,
+            'plan'     => $plan,
+            'currency' => $stripeCurrency,
+            'amount'   => $amount,
+            'display'  => "{$symbol}{$amount}", // 👈 ready-to-show label
+        ], 200);
+
+    } catch (\Throwable $e) {
+        Log::error('[Stripe] createCheckoutSession failed', [
+            'err' => $e->getMessage(),
+            'trace' => $e->getTraceAsString(),
+        ]);
+        return response()->json(['error' => 'Could not create checkout session'], 500);
     }
+}
+
+
 
     /**
      * POST /api/stripe/confirm (auth:sanctum)
-     * Called from Flutter after returning from Stripe Checkout
      */
     public function confirmAfterCheckout(Request $request)
     {
@@ -101,7 +136,7 @@ class StripeController extends Controller
                 return response()->json(['error' => 'User not found for session'], 404);
             }
 
-            $sub = $session->subscription; // may be \Stripe\Subscription|null
+            $sub = $session->subscription;
             $isActive = $sub && isset($sub->status) && in_array($sub->status, ['active','trialing'], true);
 
             if ($isActive) {
@@ -137,7 +172,7 @@ class StripeController extends Controller
         try {
             $event = $whSecret
                 ? Webhook::constructEvent($payload, $sigHeader, $whSecret)
-                : json_decode($payload, false); // dev fallback
+                : json_decode($payload, false);
         } catch (\Throwable $e) {
             Log::warning('[Stripe] Webhook signature verification failed', ['error' => $e->getMessage()]);
             return response()->json(['message' => 'signature verification failed'], 400);

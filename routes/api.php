@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\StripeController;
 use App\Http\Controllers\Api\DedicationController;
 use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\ForgotPasswordController;
+use GeoIP;
 
 /* -------------------- Public (no auth) -------------------- */
 
@@ -94,7 +95,17 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/me/profile-image', [UserController::class, 'updateProfileImage']);
     Route::get('/me', function (\Illuminate\Http\Request $request) {
-        return $request->user();
+        $u = $request->user();
+        $location = geoip()->getLocation($request->ip());
+
+        return response()->json([
+            'id'         => $u->id,
+            'name'       => $u->name,
+            'email'      => $u->email,
+            'is_premium' => (bool) $u->is_premium,
+            'country'    => $location->country ?? 'IN',
+            'currency'   => $location->currency ?? 'INR',
+        ]);
     });
 
     Route::get('/dedications', [DedicationController::class, 'index']);

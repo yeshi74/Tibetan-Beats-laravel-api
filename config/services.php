@@ -36,11 +36,11 @@ return [
     ],
 
     'stripe' => [
-        'secret'         => env('STRIPE_SECRET'),
+        'secret' => env('STRIPE_SECRET'),
         'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
-
-        // ✅ add plan-specific price ids
-        'price_monthly'  => env('STRIPE_PRICE_MONTHLY'),
-        'price_yearly'   => env('STRIPE_PRICE_YEARLY'),
+        'price_monthly_inr' => env('STRIPE_PRICE_MONTHLY_INR'),
+        'price_yearly_inr'  => env('STRIPE_PRICE_YEARLY_INR'),
+        'price_monthly_usd' => env('STRIPE_PRICE_MONTHLY_USD'),
+        'price_yearly_usd'  => env('STRIPE_PRICE_YEARLY_USD'),
     ],
 ];
