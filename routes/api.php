@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\DedicationController;
 use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\ForgotPasswordController;
 use Torann\GeoIP\Facades\GeoIP;
+use App\Http\Controllers\Api\GenreController;
 
 /* -------------------- Public (no auth) -------------------- */
 
@@ -128,6 +129,11 @@ Route::post('/reset-password', [ForgotPasswordController::class, 'reset']);
 //Admin or global playlist api
 Route::get('/featured-playlists', [PlaylistController::class, 'featured']);
 Route::get('/playlists/by-type/{type}', [PlaylistController::class, 'byType']);
+
+//Admin genre
+Route::get('/genres', [GenreController::class, 'index']); // all
+Route::get('/genres/featured', [GenreController::class, 'featured']); // featured only
+
 
 
 

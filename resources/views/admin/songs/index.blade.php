@@ -21,10 +21,13 @@
                    placeholder="🔍 Search songs..." 
                    class="border rounded px-3 py-2 flex-1 min-w-[200px]">
 
-            <select name="genre" class="border rounded px-3 py-2">
+            <!-- ✅ Dynamic Genres -->
+            <select name="genre_id" class="border rounded px-3 py-2">
                 <option value="">All Genres</option>
-                @foreach(['Love','Gorshey','Rap','Thungkar','Phama','Podcast','Losar','Favourites','Wisdom of His Holiness'] as $g)
-                    <option value="{{ $g }}" {{ request('genre') == $g ? 'selected' : '' }}>{{ $g }}</option>
+                @foreach($genres as $g)
+                    <option value="{{ $g->id }}" {{ request('genre_id') == $g->id ? 'selected' : '' }}>
+                        {{ $g->name }}
+                    </option>
                 @endforeach
             </select>
 
@@ -73,15 +76,17 @@
                             <!-- Artist -->
                             <td class="px-4 py-3">{{ $song->artist }}</td>
 
-                            <!-- Genre Badge -->
+                            <!-- ✅ Genre (from DB relation) -->
                             <td class="px-4 py-3">
-                                <span class="px-3 py-1 text-xs font-semibold rounded-full 
-                                    {{ $song->genre == 'Love' ? 'bg-pink-600 text-white' : 
-                                       ($song->genre == 'Rap' ? 'bg-purple-600 text-white' : 
-                                       'bg-gray-600 text-gray-200') }}">
-                                    {{ $song->genre ?? '-' }}
-                                </span>
+                                @if($song->genre)
+                                    <span class="px-3 py-1 text-xs font-semibold rounded-full bg-blue-600 text-white">
+                                        {{ $song->genre->name }}
+                                    </span>
+                                @else
+                                    <span class="text-gray-500">No Genre</span>
+                                @endif
                             </td>
+
 
                             <!-- Album -->
                             <td class="px-4 py-3">{{ $song->album->name ?? '-' }}</td>
@@ -117,8 +122,8 @@
         </div>
 
         <!-- Pagination -->
-        <div class="mt-4">
-            {{ $songs->links() }}
-        </div>
+        <div class="mt-6">
+    {{ $songs->links('pagination::tailwind') }}
+</div>
     </div>
 </x-app-layout>

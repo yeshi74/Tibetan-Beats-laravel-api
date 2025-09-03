@@ -6,53 +6,56 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Song;
 use App\Models\Album;
+use App\Models\Genre;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 
 class SongAdminController extends Controller
 {
     public function index(Request $request)
-    {
-        $query = Song::query()->latest();
+{
+    $query = Song::with(['album', 'genre'])->latest();
 
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('title', 'like', "%{$search}%")
-                  ->orWhere('artist', 'like', "%{$search}%")
-                  ->orWhere('genre', 'like', "%{$search}%");
-            });
-        }
-
-        if ($request->filled('genre')) {
-            $query->where('genre', $request->genre);
-        }
-
-        if ($request->filled('album_id')) {
-            $query->where('album_id', $request->album_id);
-        }
-
-        $songs = $query->paginate(15)->withQueryString();
-        $albums = Album::all();
-
-        return view('admin.songs.index', compact('songs', 'albums'));
+    if ($request->filled('search')) {
+        $search = $request->search;
+        $query->where(function ($q) use ($search) {
+            $q->where('title', 'like', "%{$search}%")
+              ->orWhere('artist', 'like', "%{$search}%");
+        });
     }
+
+    // ✅ filter by genre_id, not string
+    if ($request->filled('genre_id')) {
+        $query->where('genre_id', $request->genre_id);
+    }
+
+    if ($request->filled('album_id')) {
+        $query->where('album_id', $request->album_id);
+    }
+
+    $songs = $query->paginate(15)->withQueryString(); // ✅ keep filters during pagination
+    $albums = Album::all();
+    $genres = \App\Models\Genre::orderBy('name')->get();
+
+    return view('admin.songs.index', compact('songs', 'albums', 'genres'));
+}
+
 
     public function create()
     {
         $albums = Album::all();
-        return view('admin.songs.create', compact('albums'));
+        $genres = Genre::orderBy('name')->get(); // ✅ fetch genres
+        return view('admin.songs.create', compact('albums', 'genres'));
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
             'title'       => 'required|string|max:255',
-            'artist'      => 'nullable|string|max:255',
-            'genre'       => 'nullable|string|max:100',
-            'file'        => 'required|file|mimes:mp3,wav,aac,flac|max:102400', // 100MB
-            'cover_image' => 'nullable|image|mimes:jpg,jpeg,png|max:5120', // 5MB
+            'artist'      => 'required|string|max:255',
+            'file'        => 'required|file|mimes:mp3,wav|max:51200',
+            'cover_image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'album_id'    => 'nullable|exists:albums,id',
+            'genre_id'    => 'required|exists:genres,id', // ✅
         ]);
 
         $filePath = $request->file('file')->store('songs', 'public');
@@ -62,21 +65,22 @@ class SongAdminController extends Controller
 
         Song::create([
             'title'       => $validated['title'],
-            'artist'      => $validated['artist'] ?? 'Unknown Artist',
-            'genre'       => $validated['genre'] ?? null,
+            'artist'      => $validated['artist'],
             'file_path'   => $filePath,
             'cover_image' => $coverPath,
             'album_id'    => $validated['album_id'] ?? null,
-            'slug'        => Str::slug($validated['title']) . '-' . Str::random(6),
+            'genre_id'    => $validated['genre_id'], // ✅
         ]);
 
-        return redirect()->route('admin.songs.index')->with('success', 'Song uploaded successfully!');
+        return redirect()->route('admin.songs.index')
+            ->with('success', 'Song uploaded successfully!');
     }
 
     public function edit(Song $song)
     {
         $albums = Album::all();
-        return view('admin.songs.edit', compact('song', 'albums'));
+        $genres = Genre::orderBy('name')->get();
+        return view('admin.songs.edit', compact('song', 'albums', 'genres'));
     }
 
     public function update(Request $request, Song $song)
@@ -84,13 +88,13 @@ class SongAdminController extends Controller
         $validated = $request->validate([
             'title'       => 'required|string|max:255',
             'artist'      => 'nullable|string|max:255',
-            'genre'       => 'nullable|string|max:100',
-            'file'        => 'nullable|file|mimes:mp3,wav,aac,flac|max:102400',
-            'cover_image' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
             'album_id'    => 'nullable|exists:albums,id',
+            'genre_id'    => 'required|exists:genres,id', // ✅
+            'file'        => 'nullable|file|mimes:mp3,wav|max:51200',
+            'cover_image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
-        $data = $request->only(['title', 'artist', 'genre', 'album_id']);
+        $data = $request->only(['title', 'artist', 'album_id', 'genre_id']); // ✅ removed 'genre'
 
         if ($request->hasFile('cover_image')) {
             if ($song->cover_image) {
@@ -108,7 +112,8 @@ class SongAdminController extends Controller
 
         $song->update($data);
 
-        return redirect()->route('admin.songs.index')->with('success', 'Song updated successfully!');
+        return redirect()->route('admin.songs.index')
+            ->with('success', 'Song updated successfully!');
     }
 
     public function destroy(Song $song)
@@ -121,6 +126,7 @@ class SongAdminController extends Controller
         }
 
         $song->delete();
-        return redirect()->route('admin.songs.index')->with('success', 'Song deleted.');
+        return redirect()->route('admin.songs.index')
+            ->with('success', 'Song deleted.');
     }
 }

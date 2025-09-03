@@ -31,6 +31,7 @@ Route::middleware(['auth', 'is_admin'])->prefix('admin')->name('admin.')->group(
     Route::resource('playlists', PlaylistController::class);
     Route::patch('playlists/{playlist}/toggle-featured', [PlaylistController::class, 'toggleFeatured'])
     ->name('playlists.toggleFeatured');
+    Route::resource('genres', \App\Http\Controllers\Admin\GenreController::class);
 });
 
 

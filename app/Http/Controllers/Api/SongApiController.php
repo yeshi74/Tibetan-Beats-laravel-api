@@ -13,21 +13,22 @@ class SongApiController extends Controller
     /**
      * Helper: build a song array with absolute urls, created_at, and is_liked
      */
-    protected function transformSong(Request $request, Song $song, array $likedIds = [])
-    {
-        $baseUrl = $request->getSchemeAndHttpHost();
+protected function transformSong(Request $request, Song $song, array $likedIds = [])
+{
+    $baseUrl = $request->getSchemeAndHttpHost();
 
-        return [
-            'id'              => $song->id,
-            'title'           => $song->title,
-            'genre'           => $song->genre,
-            'artist'          => $song->artist,
-            'audio_url'       => $baseUrl . '/api/songs/stream/' . $song->id,
-            'cover_image_url' => $song->cover_image ? $baseUrl . '/storage/' . $song->cover_image : null,
-            'created_at'      => optional($song->created_at)->toIso8601String(),
-            'is_liked'        => in_array($song->id, $likedIds),
-        ];
-    }
+    return [
+        'id'              => $song->id,
+        'title'           => $song->title,
+        'artist'          => $song->artist,
+        'genre_id'        => $song->genre_id,
+        'genre'           => $song->genre ? $song->genre->name : null, // ✅ clean name
+        'audio_url'       => $baseUrl . '/api/songs/stream/' . $song->id,
+        'cover_image_url' => $song->cover_image ? $baseUrl . '/storage/' . $song->cover_image : null,
+        'created_at'      => optional($song->created_at)->toIso8601String(),
+        'is_liked'        => in_array($song->id, $likedIds),
+    ];
+}
 
     /**
      * GET /api/songs
@@ -199,81 +200,82 @@ class SongApiController extends Controller
     /**
      * POST /api/songs
      */
-    public function store(Request $request)
-    {
-        $request->validate([
-            'title'       => 'required|string|max:255',
-            'artist'      => 'nullable|string|max:255',
-            'file'        => 'required|file|mimes:mp3,wav|max:51200',
-            'cover_image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-            'album_id'    => 'nullable|exists:albums,id',
-            'genre'       => 'required|string|max:100',
-        ]);
+public function store(Request $request)
+{
+    $request->validate([
+        'title'       => 'required|string|max:255',
+        'artist'      => 'nullable|string|max:255',
+        'file'        => 'required|file|mimes:mp3,wav|max:51200',
+        'cover_image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+        'album_id'    => 'nullable|exists:albums,id',
+        'genre_id'    => 'required|exists:genres,id', // ✅ use genre_id foreign key
+    ]);
 
-        $coverPath = $request->hasFile('cover_image')
-            ? $request->file('cover_image')->store('covers', 'public')
-            : null;
+    $coverPath = $request->hasFile('cover_image')
+        ? $request->file('cover_image')->store('covers', 'public')
+        : null;
 
-        $filePath = $request->file('file')->store('songs', 'public');
+    $filePath = $request->file('file')->store('songs', 'public');
 
-        $song = Song::create([
-            'title'       => $request->title,
-            'artist'      => $request->artist,
-            'file_path'   => $filePath,
-            'cover_image' => $coverPath,
-            'album_id'    => $request->album_id,
-            'genre'       => $request->genre,
-        ]);
+    $song = Song::create([
+        'title'       => $request->title,
+        'artist'      => $request->artist,
+        'file_path'   => $filePath,
+        'cover_image' => $coverPath,
+        'album_id'    => $request->album_id,
+        'genre_id'    => $request->genre_id, // ✅ store relation
+    ]);
 
-        return response()->json([
-            'status'  => 'success',
-            'message' => 'Song uploaded successfully',
-            'data'    => $this->transformSong($request, $song),
-        ], 201);
+    return response()->json([
+        'status'  => 'success',
+        'message' => 'Song uploaded successfully',
+        'data'    => $this->transformSong($request, $song),
+    ], 201);
+}
+
+/**
+ * PUT /api/songs/{id}
+ */
+public function update(Request $request, $id)
+{
+    $song = Song::findOrFail($id);
+
+    $request->validate([
+        'title'       => 'required|string|max:255',
+        'artist'      => 'required|string|max:255',
+        'genre_id'    => 'required|exists:genres,id', // ✅ validate genre_id
+        'file'        => 'nullable|mimes:mp3,wav,ogg|max:10000',
+        'cover_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+        'album_id'    => 'nullable|exists:albums,id',
+    ]);
+
+    if ($request->hasFile('file')) {
+        if ($song->file_path) {
+            Storage::disk('public')->delete($song->file_path);
+        }
+        $song->file_path = $request->file('file')->store('songs', 'public');
     }
 
-    /**
-     * PUT /api/songs/{id}
-     */
-    public function update(Request $request, $id)
-    {
-        $song = Song::findOrFail($id);
-
-        $request->validate([
-            'title'       => 'required|string|max:255',
-            'artist'      => 'required|string|max:255',
-            'genre'       => 'required|string|max:100',
-            'file'        => 'nullable|mimes:mp3,wav,ogg|max:10000',
-            'cover_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
-            'album_id'    => 'nullable|exists:albums,id',
-        ]);
-
-        if ($request->hasFile('file')) {
-            if ($song->file_path) {
-                Storage::disk('public')->delete($song->file_path);
-            }
-            $song->file_path = $request->file('file')->store('songs', 'public');
+    if ($request->hasFile('cover_image')) {
+        if ($song->cover_image) {
+            Storage::disk('public')->delete($song->cover_image);
         }
-
-        if ($request->hasFile('cover_image')) {
-            if ($song->cover_image) {
-                Storage::disk('public')->delete($song->cover_image);
-            }
-            $song->cover_image = $request->file('cover_image')->store('covers', 'public');
-        }
-
-        $song->title    = $request->title;
-        $song->artist   = $request->artist;
-        $song->genre    = $request->genre;
-        $song->album_id = $request->album_id;
-        $song->save();
-
-        return response()->json([
-            'status'  => 'success',
-            'message' => 'Song updated successfully',
-            'data'    => $this->transformSong($request, $song),
-        ]);
+        $song->cover_image = $request->file('cover_image')->store('covers', 'public');
     }
+
+    $song->title    = $request->title;
+    $song->artist   = $request->artist;
+    $song->genre_id = $request->genre_id; // ✅ update relation
+    $song->album_id = $request->album_id;
+    $song->save();
+
+    return response()->json([
+        'status'  => 'success',
+        'message' => 'Song updated successfully',
+        'data'    => $this->transformSong($request, $song),
+    ]);
+}
+
 
     /**
      * DELETE /api/songs/{id}
