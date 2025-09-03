@@ -318,14 +318,33 @@ public function update(Request $request, $id)
     /**
      * GET /api/songs/genre/{genre}
      */
-    public function byGenre(Request $request, $genre)
+    public function byGenre(Request $request, $id)
     {
         $user = $request->user();
         $likedIds = $user
             ? DB::table('liked_songs')->where('user_id', $user->id)->pluck('song_id')->toArray()
             : [];
 
-        $songs = Song::where('genre', $genre)->latest()->take(15)->get()
+        $songs = Song::where('genre_id', $id)
+            ->latest()
+            ->take(25) // ✅ Limit to 25 as you wanted
+            ->get()
+            ->map(fn ($s) => $this->transformSong($request, $s, $likedIds));
+
+        return response()->json([
+            'status' => 'success',
+            'data'   => $songs,
+        ]);
+    }
+
+    public function byGenreId(Request $request, $id)
+    {
+        $user = $request->user();
+        $likedIds = $user
+            ? \DB::table('liked_songs')->where('user_id', $user->id)->pluck('song_id')->toArray()
+            : [];
+
+        $songs = \App\Models\Song::where('genre_id', $id)->latest()->take(25)->get()
             ->map(fn ($s) => $this->transformSong($request, $s, $likedIds));
 
         return response()->json([

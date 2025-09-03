@@ -28,6 +28,10 @@ Route::get('/songs/most-played', [SongApiController::class, 'mostPlayed']);
 
 Route::get('/songs/most-liked', [SongApiController::class, 'mostLiked']);
 
+Route::get('/songs/genre/{id}', [SongApiController::class, 'byGenre']);
+
+Route::get('/songs/by-genre-id/{id}', [SongApiController::class, 'byGenreId']);
+
 Route::post('/songs/{id}/play', [SongController::class, 'incrementPlayCount']);
 
 Route::get('/songs/{id}', [SongApiController::class, 'show']); // keep only once
@@ -133,6 +137,9 @@ Route::get('/playlists/by-type/{type}', [PlaylistController::class, 'byType']);
 //Admin genre
 Route::get('/genres', [GenreController::class, 'index']); // all
 Route::get('/genres/featured', [GenreController::class, 'featured']); // featured only
+
+
+
 
 
 
