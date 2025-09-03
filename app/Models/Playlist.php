@@ -6,7 +6,16 @@ use Illuminate\Database\Eloquent\Model;
 
 class Playlist extends Model
 {
-    protected $fillable = ['user_id', 'name', 'description'];
+    protected $fillable = ['name',
+        'description',
+        'cover_image',
+        'is_featured',
+        'type',
+        'user_id'];
+
+        protected $casts = [
+            'is_featured' => 'boolean',
+        ];
 
     public function user()
     {

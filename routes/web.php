@@ -28,6 +28,9 @@ Route::middleware('auth')->group(function () {
 Route::middleware(['auth', 'is_admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::resource('albums', AlbumController::class);
     Route::resource('songs', SongAdminController::class);
+    Route::resource('playlists', PlaylistController::class);
+    Route::patch('playlists/{playlist}/toggle-featured', [PlaylistController::class, 'toggleFeatured'])
+    ->name('playlists.toggleFeatured');
 });
 
 
@@ -43,11 +46,6 @@ Route::get('/email-verified-success', function () {
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [LoginController::class, 'login']);
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
-
-
-Route::prefix('admin')->name('admin.')->group(function () {
-    Route::resource('playlists', PlaylistController::class);
-});
 
 Route::view('/stripe/cancel', 'stripe.cancel')->name('stripe.cancel');
 

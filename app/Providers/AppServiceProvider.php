@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Pagination\Paginator;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -24,5 +25,7 @@ class AppServiceProvider extends ServiceProvider
         ResetPassword::createUrlUsing(function ($user, string $token) {
             return config('app.frontend_url') . '/reset-password?token=' . $token . '&email=' . urlencode($user->email);
         });
+
+        Paginator::useBootstrapFive();
     }
 }

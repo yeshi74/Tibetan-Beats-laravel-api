@@ -9,9 +9,22 @@ use Illuminate\Http\Request;
 
 class PlaylistController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $playlists = Playlist::withCount('songs')->latest()->paginate(10);
+        $query = Playlist::withCount('songs')->latest();
+
+        // 🔎 Search filter
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+
+        // ✅ Paginate + preserve search query
+        $playlists = $query->paginate(10)->withQueryString();
+
         return view('admin.playlists.index', compact('playlists'));
     }
 
@@ -23,19 +36,31 @@ class PlaylistController extends Controller
 
     public function store(Request $request)
     {
-        $data = $request->validate([
-            'name' => 'required|string|max:255',
+        $validated = $request->validate([
+            'name'        => 'required|string|max:255',
             'description' => 'nullable|string',
-            'songs' => 'array',
+            'songs'       => 'array',
+            'cover_image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'is_featured' => 'nullable|boolean',
+            'type'        => 'nullable|string|max:50',
         ]);
+
+        $coverPath = null;
+        if ($request->hasFile('cover_image')) {
+            $coverPath = $request->file('cover_image')->store('playlist_covers', 'public');
+        }
 
         $playlist = Playlist::create([
-            'name' => $data['name'],
-            'description' => $data['description'] ?? null,
+            'name'        => $validated['name'],
+            'description' => $validated['description'] ?? null,
+            'cover_image' => $coverPath,
+            'is_featured' => $validated['is_featured'] ?? false,
+            'type'        => $validated['type'] ?? null,
+            'user_id'     => null, // admin-created
         ]);
 
-        if (!empty($data['songs'])) {
-            $playlist->songs()->sync($data['songs']);
+        if (!empty($validated['songs'])) {
+            $playlist->songs()->sync($validated['songs']);
         }
 
         return redirect()->route('admin.playlists.index')
@@ -51,18 +76,26 @@ class PlaylistController extends Controller
 
     public function update(Request $request, Playlist $playlist)
     {
-        $data = $request->validate([
-            'name' => 'required|string|max:255',
+        $validated = $request->validate([
+            'name'        => 'required|string|max:255',
             'description' => 'nullable|string',
-            'songs' => 'array',
+            'songs'       => 'array',
+            'cover_image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'is_featured' => 'nullable|boolean',
+            'type'        => 'nullable|string|max:50',
         ]);
 
-        $playlist->update([
-            'name' => $data['name'],
-            'description' => $data['description'] ?? null,
-        ]);
+        if ($request->hasFile('cover_image')) {
+            $coverPath = $request->file('cover_image')->store('playlist_covers', 'public');
+            $validated['cover_image'] = $coverPath;
+        }
 
-        $playlist->songs()->sync($data['songs'] ?? []);
+        // Checkbox for "featured"
+        $validated['is_featured'] = $request->has('is_featured');
+
+        $playlist->update($validated);
+
+        $playlist->songs()->sync($validated['songs'] ?? []);
 
         return redirect()->route('admin.playlists.index')
             ->with('success', 'Playlist updated successfully!');
@@ -74,4 +107,14 @@ class PlaylistController extends Controller
         return redirect()->route('admin.playlists.index')
             ->with('success', 'Playlist deleted successfully!');
     }
+
+    public function toggleFeatured(Playlist $playlist)
+    {
+        $playlist->is_featured = !$playlist->is_featured;
+        $playlist->save();
+
+        return redirect()->route('admin.playlists.index')
+            ->with('success', 'Playlist "' . $playlist->name . '" featured status updated!');
+    }
+
 }

@@ -125,6 +125,11 @@ Route::post('/forgot-password', [ForgotPasswordController::class, 'sendResetLink
 Route::post('/reset-password', [ForgotPasswordController::class, 'reset']);
 
 
+//Admin or global playlist api
+Route::get('/featured-playlists', [PlaylistController::class, 'featured']);
+Route::get('/playlists/by-type/{type}', [PlaylistController::class, 'byType']);
+
+
 
 
 
