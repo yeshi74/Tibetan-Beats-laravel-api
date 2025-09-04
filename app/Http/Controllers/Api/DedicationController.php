@@ -29,12 +29,15 @@ class DedicationController extends Controller
                 $with[] = 'toUser:id,name,profile_image';
             }
 
-            $query = Dedication::with($with)
-                ->withCount('likes')
-                ->approved() // ✅ only approved
-                ->latest();
+            $query = Dedication::with($with)->withCount('likes')->latest();
 
-            // Filters
+            // ✅ Visibility rules
+            if ($filter === 'all') {
+                // Public feed: approved only
+                $query->approved();
+            }
+
+            // ✅ Filters
             if ($request->filled('song_id')) {
                 $query->where('song_id', (int) $request->input('song_id'));
             }
@@ -50,45 +53,47 @@ class DedicationController extends Controller
                       ->orWhere('to_name', $user->name);
                 });
             } elseif ($filter === 'received' && !$user) {
-                $query->whereRaw('0=1'); // no results if not logged in
+                $query->whereRaw('0=1');
             }
 
             $perPage = (int) $request->get('per_page', 20);
-            $items   = $query->paginate($perPage);
+            $page    = (int) $request->get('page', 1);
 
-            // Tab counts
+            $items = $query->paginate($perPage, ['*'], 'page', $page);
+
+            // ✅ Counts
             $counts = [
                 'all'      => Dedication::approved()->count(),
-                'my'       => $user ? Dedication::approved()->where('user_id', $user->id)->count() : 0,
-                'received' => $user ? Dedication::approved()
-                                        ->where(function ($q) use ($user) {
-                                            $q->where('to_user_id', $user->id)
-                                              ->orWhere('to_name', $user->name);
-                                        })->count() : 0,
+                'my'       => $user ? Dedication::where('user_id', $user->id)->count() : 0,
+                'received' => $user ? Dedication::where(function ($q) use ($user) {
+                    $q->where('to_user_id', $user->id)
+                      ->orWhere('to_name', $user->name);
+                })->count() : 0,
             ];
 
             return response()->json([
                 'status' => 'success',
                 'filter' => $filter,
-                'data'   => $items->map(function ($d) use ($user) {
+                'data'   => $items->getCollection()->map(function ($d) use ($user) {
                     return [
                         'id'              => $d->id,
                         'to_name'         => (string) $d->to_name,
                         'message'         => (string) $d->message,
+                        'status'          => (string) $d->status, // 👈 moderation status
                         'created_at'      => optional($d->created_at)->toIso8601String(),
                         'cover_image_url' => $d->cover_image_url,
-                        'user'            => $d->user ? [
+                        'user' => $d->user ? [
                             'id'                => $d->user->id,
                             'name'              => $d->user->name,
                             'profile_image_url' => $d->user->profile_image_url,
                         ] : null,
-                        'song'            => $d->song ? [
+                        'song' => $d->song ? [
                             'id'              => $d->song->id,
                             'title'           => $d->song->title,
                             'artist'          => $d->song->artist,
                             'cover_image_url' => $d->song->cover_image_url,
                         ] : null,
-                        'to_user'         => $d->toUser ? [
+                        'to_user' => $d->toUser ? [
                             'id'                => $d->toUser->id,
                             'name'              => $d->toUser->name,
                             'profile_image_url' => $d->toUser->profile_image_url,
@@ -182,8 +187,9 @@ class DedicationController extends Controller
 
             return response()->json([
                 'status'    => 'success',
-                'message'   => 'Dedication sent successfully',
+                'message'   => 'Your dedication was sent and will appear publicly after approval.',
                 ...( !$isPremium ? ['remaining' => $remaining] : [] ),
+                'moderation'=> 'pending',
                 'data'      => [
                     'id'              => $d->id,
                     'to_name'         => $d->to_name,
