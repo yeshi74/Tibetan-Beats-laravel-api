@@ -9,11 +9,14 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Notifications\CustomVerifyEmail;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable, HasApiTokens;
+
+    use SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
@@ -58,6 +61,19 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+
+    public function role() { 
+        return $this->belongsTo(Role::class); 
+    }
+
+    public function hasRole(string $name): bool {
+        return $this->role?->name === $name;
+    }
+
+    public function hasAnyRole(array $names): bool {
+        return in_array($this->role?->name, $names, true);
     }
 
     

@@ -10,6 +10,7 @@ class AuthServiceProvider extends ServiceProvider
 {
     protected $policies = [
         Dedication::class => DedicationPolicy::class,
+        \App\Models\Dedication::class => \App\Policies\DedicationPolicy::class,
     ];
 
     public function boot(): void

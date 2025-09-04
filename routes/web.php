@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Mail;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Admin\PlaylistController;
+use App\Http\Controllers\Admin\UserAdminController;
+use App\Http\Controllers\Admin\DedicationModerationController;
 
 
 Route::get('/', function () {
@@ -32,7 +34,31 @@ Route::middleware(['auth', 'is_admin'])->prefix('admin')->name('admin.')->group(
     Route::patch('playlists/{playlist}/toggle-featured', [PlaylistController::class, 'toggleFeatured'])
     ->name('playlists.toggleFeatured');
     Route::resource('genres', \App\Http\Controllers\Admin\GenreController::class);
+
+    Route::get('users', [UserAdminController::class, 'index'])->name('users.index');
+    Route::get('users/{user}', [UserAdminController::class, 'show'])->name('users.show');
+    Route::patch('users/{user}/ban', [UserAdminController::class, 'ban'])->name('users.ban');
+    Route::patch('users/{user}/unban', [UserAdminController::class, 'unban'])->name('users.unban');
+    Route::patch('users/{user}/role', [UserAdminController::class, 'updateRole'])->name('users.role');
+    Route::delete('users/{user}', [UserAdminController::class, 'softDelete'])->name('users.delete');
+    Route::post('users/{id}/restore', [UserAdminController::class, 'restore'])->name('users.restore');
 });
+
+
+Route::middleware(['auth','role:admin,moderator'])
+    ->prefix('admin/moderation')
+    ->name('admin.moderation.')
+    ->group(function () {
+        Route::patch('dedications/bulk/approve', [DedicationModerationController::class, 'bulkApprove'])
+            ->name('dedications.bulkApprove');
+        Route::patch('dedications/bulk/reject', [DedicationModerationController::class, 'bulkReject'])
+            ->name('dedications.bulkReject');
+
+        // (the others)
+        Route::get('dedications', [DedicationModerationController::class, 'index'])->name('dedications.index');
+        Route::patch('dedications/{dedication}/approve', [DedicationModerationController::class, 'approve'])->name('dedications.approve');
+        Route::patch('dedications/{dedication}/reject', [DedicationModerationController::class, 'reject'])->name('dedications.reject');
+    });
 
 
 Route::get('/verify-email/{id}/{hash}', [VerifyEmailController::class, '__invoke'])

@@ -16,7 +16,17 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
         'is_admin' => \App\Http\Middleware\IsAdmin::class,
+        'role' => \App\Http\Middleware\EnsureUserHasRole::class,
         ]);
+
+         // Global for all API requests
+        $middleware->appendToGroup('api', \App\Http\Middleware\RejectBanned::class);
+
+        // Custom route middleware (aliases)
+        $middleware->alias([
+            'role' => \App\Http\Middleware\EnsureUserHasRole::class,
+        ]);
+
         
     })
     ->withExceptions(function (Exceptions $exceptions): void {

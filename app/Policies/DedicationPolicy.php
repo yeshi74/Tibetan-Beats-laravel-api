@@ -7,18 +7,20 @@ use App\Models\Dedication;
 
 class DedicationPolicy
 {
-    /**
-     * Anyone can view public; owner can view always; friends: implement later.
-     */
-    public function view(?User $user, Dedication $dedication): bool
-    {
-        if ($dedication->visibility === 'public') {
-            return true;
-        }
-        if ($user && $user->id === $dedication->user_id) {
-            return true;
-        }
-        // TODO: implement 'friends' visibility check
-        return $dedication->visibility !== 'private';
+    public function viewAny(User $actor): bool { 
+        return $actor->hasAnyRole(['admin','moderator']); 
     }
+
+    public function view(User $actor, Dedication $d): bool { 
+        return $actor->hasAnyRole(['admin','moderator']); 
+    }
+
+    public function approve(User $actor, Dedication $d): bool { 
+        return $actor->hasAnyRole(['admin','moderator']); 
+    }
+
+    public function reject(User $actor, Dedication $d): bool { 
+        return $actor->hasAnyRole(['admin','moderator']); 
+    }
+    
 }

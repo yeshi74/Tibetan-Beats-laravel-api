@@ -28,7 +28,7 @@ Route::get('/songs/most-played', [SongApiController::class, 'mostPlayed']);
 
 Route::get('/songs/most-liked', [SongApiController::class, 'mostLiked']);
 
-Route::get('/songs/genre/{id}', [SongApiController::class, 'byGenre']);
+// Route::get('/songs/genre/{id}', [SongApiController::class, 'byGenre']);
 
 Route::get('/songs/by-genre-id/{id}', [SongApiController::class, 'byGenreId']);
 
@@ -57,15 +57,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/user/change-password', [AuthController::class, 'changePassword']);
 
     // convenience /me payload
-    Route::get('/me', function (Request $request) {
-        $u = $request->user();
-        return response()->json([
-            'id'         => $u->id,
-            'name'       => $u->name,
-            'email'      => $u->email,
-            'is_premium' => (bool) $u->is_premium,
-        ]);
-    });
+    // Route::get('/me', function (Request $request) {
+    //     $u = $request->user();
+    //     return response()->json([
+    //         'id'         => $u->id,
+    //         'name'       => $u->name,
+    //         'email'      => $u->email,
+    //         'is_premium' => (bool) $u->is_premium,
+    //     ]);
+    // });
 
     // likes
     Route::get('/me/likes', [SongApiController::class, 'likedSongs']);

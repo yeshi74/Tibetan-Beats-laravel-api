@@ -13,218 +13,210 @@ use Illuminate\Support\Facades\Schema;
 class DedicationController extends Controller
 {
     /**
-     * GET /api/dedications  (public feed with filters)
+     * GET /api/dedications (public feed with filters)
      */
-public function index(Request $request)
-{
-    try {
-        $filter = $request->get('filter', 'all'); // all | my | received
-        $user   = $request->user();
+    public function index(Request $request)
+    {
+        try {
+            $filter = $request->get('filter', 'all'); // all | my | received
+            $user   = $request->user();
 
-        $with = [
-            'user:id,name,profile_image',
-            'song:id,title,artist,cover_image',
-        ];
+            $with = [
+                'user:id,name,profile_image',
+                'song:id,title,artist,cover_image',
+            ];
+            if (Schema::hasColumn('dedications', 'to_user_id')) {
+                $with[] = 'toUser:id,name,profile_image';
+            }
 
-        if (Schema::hasColumn('dedications', 'to_user_id')) {
-            $with[] = 'toUser:id,name,profile_image';
-        }
+            $query = Dedication::with($with)
+                ->withCount('likes')
+                ->approved() // ✅ only approved
+                ->latest();
 
-        $query = Dedication::with($with)
-            ->withCount('likes')
-            ->latest();
+            // Filters
+            if ($request->filled('song_id')) {
+                $query->where('song_id', (int) $request->input('song_id'));
+            }
+            if ($request->filled('user_id')) {
+                $query->where('user_id', (int) $request->input('user_id'));
+            }
 
-        // ✅ Apply filters
-        if ($filter === 'my') {
-            $query->where('user_id', $user?->id ?? 0);
-        } elseif ($filter === 'received') {
-            if ($user) {
+            if ($filter === 'my' && $user) {
+                $query->where('user_id', $user->id);
+            } elseif ($filter === 'received' && $user) {
                 $query->where(function ($q) use ($user) {
                     $q->where('to_user_id', $user->id)
                       ->orWhere('to_name', $user->name);
                 });
-            } else {
-                $query->whereRaw('0=1');
+            } elseif ($filter === 'received' && !$user) {
+                $query->whereRaw('0=1'); // no results if not logged in
             }
+
+            $perPage = (int) $request->get('per_page', 20);
+            $items   = $query->paginate($perPage);
+
+            // Tab counts
+            $counts = [
+                'all'      => Dedication::approved()->count(),
+                'my'       => $user ? Dedication::approved()->where('user_id', $user->id)->count() : 0,
+                'received' => $user ? Dedication::approved()
+                                        ->where(function ($q) use ($user) {
+                                            $q->where('to_user_id', $user->id)
+                                              ->orWhere('to_name', $user->name);
+                                        })->count() : 0,
+            ];
+
+            return response()->json([
+                'status' => 'success',
+                'filter' => $filter,
+                'data'   => $items->map(function ($d) use ($user) {
+                    return [
+                        'id'              => $d->id,
+                        'to_name'         => (string) $d->to_name,
+                        'message'         => (string) $d->message,
+                        'created_at'      => optional($d->created_at)->toIso8601String(),
+                        'cover_image_url' => $d->cover_image_url,
+                        'user'            => $d->user ? [
+                            'id'                => $d->user->id,
+                            'name'              => $d->user->name,
+                            'profile_image_url' => $d->user->profile_image_url,
+                        ] : null,
+                        'song'            => $d->song ? [
+                            'id'              => $d->song->id,
+                            'title'           => $d->song->title,
+                            'artist'          => $d->song->artist,
+                            'cover_image_url' => $d->song->cover_image_url,
+                        ] : null,
+                        'to_user'         => $d->toUser ? [
+                            'id'                => $d->toUser->id,
+                            'name'              => $d->toUser->name,
+                            'profile_image_url' => $d->toUser->profile_image_url,
+                        ] : null,
+                        'likes_count' => $d->likes_count,
+                        'is_liked'    => $user ? $d->likedBy($user) : false,
+                    ];
+                }),
+                'meta' => [
+                    'current_page' => $items->currentPage(),
+                    'last_page'    => $items->lastPage(),
+                    'per_page'     => $items->perPage(),
+                    'total'        => $items->total(),
+                    'counts'       => $counts,
+                ]
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('[Dedications] index failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Failed to fetch dedications'
+            ], 500);
+        }
+    }
+
+    /**
+     * POST /api/dedications
+     */
+    public function store(Request $request)
+    {
+        $user = $request->user()?->fresh();
+        if (!$user) {
+            return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 401);
         }
 
-        $perPage = (int) $request->get('per_page', 20);
-        $page    = (int) $request->get('page', 1);
+        $validated = $request->validate([
+            'song_id'     => 'required|exists:songs,id',
+            'message'     => 'required|string|max:300',
+            'to_name'     => 'nullable|string|max:80|required_without:to_user_id',
+            'to_user_id'  => 'nullable|integer|exists:users,id|required_without:to_name',
+        ]);
 
-        $items = $query->paginate($perPage, ['*'], 'page', $page);
+        try {
+            $song = Song::findOrFail($validated['song_id']);
 
-        // ✅ Counts for tabs
-        $counts = [
-            'all'      => Dedication::count(),
-            'my'       => $user ? Dedication::where('user_id', $user->id)->count() : 0,
-            'received' => $user ? Dedication::where('to_user_id', $user->id)
-                                ->orWhere('to_name', $user->name)
-                                ->count() : 0,
-        ];
+            $toUserId = $validated['to_user_id'] ?? null;
+            $toName   = $validated['to_name'] ?? null;
 
-        return response()->json([
-            'status' => 'success',
-            'filter' => $filter,
-            'data'   => $items->getCollection()->map(function ($d) use ($user) {
-                return [
+            if ($toUserId && Schema::hasColumn('dedications', 'to_user_id')) {
+                $recipient = User::find($toUserId);
+                $toName = $recipient?->name ?? $toName ?? 'Someone special';
+            }
+
+            // Dedication Limits
+            $countToday = Dedication::where('user_id', $user->id)
+                ->whereDate('created_at', now()->toDateString())
+                ->count();
+
+            $isPremium = (bool) $user->is_premium || $user->role === 'premium';
+            $limit     = $isPremium ? null : 2;
+
+            if (!$isPremium && $limit !== null && $countToday >= $limit) {
+                return response()->json([
+                    'status'    => 'error',
+                    'message'   => 'Your daily free dedication limit has been reached. Go Premium for unlimited dedications.',
+                    'remaining' => 0,
+                ], 403);
+            }
+
+            $d = Dedication::create([
+                'user_id'    => $user->id,
+                'song_id'    => $song->id,
+                'to_name'    => $toName ?? 'Someone',
+                'message'    => $validated['message'],
+                'status'     => 'pending', // ✅ always pending first
+                'to_user_id' => $toUserId,
+            ]);
+
+            $countToday++;
+            $remaining = $limit ? max($limit - $countToday, 0) : null;
+
+            $with = ['user:id,name,profile_image_url', 'song:id,title,artist,cover_image'];
+            if (Schema::hasColumn('dedications', 'to_user_id')) {
+                $with[] = 'toUser:id,name,profile_image_url';
+            }
+
+            $d->load($with)->loadCount('likes');
+
+            return response()->json([
+                'status'    => 'success',
+                'message'   => 'Dedication sent successfully',
+                ...( !$isPremium ? ['remaining' => $remaining] : [] ),
+                'data'      => [
                     'id'              => $d->id,
-                    'to_name'         => (string) $d->to_name,
-                    'message'         => (string) $d->message,
+                    'to_name'         => $d->to_name,
+                    'message'         => $d->message,
                     'created_at'      => optional($d->created_at)->toIso8601String(),
                     'cover_image_url' => $d->cover_image_url,
-                    'user' => $d->user ? [
+                    'user'            => $d->user ? [
                         'id'                => $d->user->id,
                         'name'              => $d->user->name,
                         'profile_image_url' => $d->user->profile_image_url,
                     ] : null,
-                    'song' => $d->song ? [
+                    'song'            => $d->song ? [
                         'id'              => $d->song->id,
                         'title'           => $d->song->title,
                         'artist'          => $d->song->artist,
                         'cover_image_url' => $d->song->cover_image_url,
                     ] : null,
-                    'to_user' => $d->toUser ? [
+                    'to_user'         => ($d->toUser) ? [
                         'id'                => $d->toUser->id,
                         'name'              => $d->toUser->name,
                         'profile_image_url' => $d->toUser->profile_image_url,
                     ] : null,
                     'likes_count' => $d->likes_count,
-                    'is_liked'    => $user ? $d->likedBy($user) : false,
-                ];
-            }),
-            'meta' => [
-                'current_page' => $items->currentPage(),
-                'last_page'    => $items->lastPage(),
-                'per_page'     => $items->perPage(),
-                'total'        => $items->total(),
-                'counts'       => $counts, // 👈 extra counts for all/my/received
-            ]
-        ]);
-    } catch (\Throwable $e) {
-        Log::error('[Dedications] index failed', [
-            'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString(),
-        ]);
-        return response()->json([
-            'status'  => 'error',
-            'message' => 'Failed to fetch dedications'
-        ], 500);
-    }
-}
+                    'is_liked'    => true,
+                ],
+            ], 201);
 
-
-
-
-
-public function store(Request $request)
-{
-    $user = $request->user()?->fresh();
-    if (!$user) {
-        return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 401);
-    }
-
-    $validated = $request->validate([
-        'song_id'     => 'required|exists:songs,id',
-        'message'     => 'required|string|max:300',
-        'to_name'     => 'nullable|string|max:80|required_without:to_user_id',
-        'to_user_id'  => 'nullable|integer|exists:users,id|required_without:to_name',
-    ]);
-
-    try {
-        $song = Song::findOrFail($validated['song_id']);
-
-        $toUserId = $validated['to_user_id'] ?? null;
-        $toName   = $validated['to_name'] ?? null;
-
-        // ✅ Always set both when to_user_id is provided
-        if ($toUserId && Schema::hasColumn('dedications', 'to_user_id')) {
-            $recipient = User::find($toUserId);
-            $toName = $recipient?->name ?? $toName ?? 'Someone special';
+        } catch (\Throwable $e) {
+            Log::error('[Dedications] store failed', ['error' => $e->getMessage()]);
+            return response()->json(['status' => 'error', 'message' => 'Could not save dedication'], 500);
         }
-
-        // --- Dedication Limits ---
-$countToday = Dedication::where('user_id', $user->id)
-    ->whereDate('created_at', now()->toDateString())
-    ->count();
-
-$isPremium = (bool) $user->is_premium || $user->role === 'premium';
-$limit = $isPremium ? null : 2; 
-
-if (!$isPremium && $limit !== null && $countToday >= $limit) {
-    return response()->json([
-        'status'    => 'error',
-        'message'   => 'Your daily free dedication limit has been reached. Go Premium for unlimited dedications.',
-        'remaining' => 0,
-    ], 403);
-}
-
-// --- Save Dedication ---
-$data = [
-    'user_id'   => $user->id,
-    'song_id'   => $song->id,
-    'to_name'   => $toName ?? 'Someone',
-    'message'   => $validated['message'],
-];
-
-if ($toUserId && Schema::hasColumn('dedications', 'to_user_id')) {
-    $data['to_user_id'] = $toUserId;
-}
-
-$d = Dedication::create($data);
-
-$countToday++;
-$remaining = $limit ? max($limit - $countToday, 0) : null;
-
-$with = ['user:id,name,profile_image_url', 'song:id,title,artist,cover_image'];
-if (Schema::hasColumn('dedications', 'to_user_id')) {
-    $with[] = 'toUser:id,name,profile_image_url';
-}
-
-$d->load($with)->loadCount('likes');
-
-return response()->json([
-    'status'    => 'success',
-    'message'   => 'Dedication sent successfully',
-    // ✅ only include "remaining" if NOT premium
-    ...( !$isPremium ? ['remaining' => $remaining] : [] ),
-    'data'      => [
-        'id'              => $d->id,
-        'to_name'         => $d->to_name,
-        'message'         => $d->message,
-        'created_at'      => optional($d->created_at)->toIso8601String(),
-        'cover_image_url' => $d->cover_image_url,
-        'user'            => $d->user ? [
-            'id'                => $d->user->id,
-            'name'              => $d->user->name,
-            'profile_image_url' => $d->user->profile_image_url,
-        ] : null,
-        'song'            => $d->song ? [
-            'id'              => $d->song->id,
-            'title'           => $d->song->title,
-            'artist'          => $d->song->artist,
-            'cover_image_url' => $d->song->cover_image_url,
-        ] : null,
-        'to_user'    => (Schema::hasColumn('dedications', 'to_user_id') && $d->toUser) ? [
-            'id'                => $d->toUser->id,
-            'name'              => $d->toUser->name,
-            'profile_image_url' => $d->toUser->profile_image_url,
-        ] : null,
-        'likes_count' => $d->likes_count,
-        'is_liked'    => true,
-    ],
-], 201);
-
-    } catch (\Throwable $e) {
-        Log::error('[Dedications] store failed', ['error' => $e->getMessage()]);
-        return response()->json(['status' => 'error', 'message' => 'Could not save dedication'], 500);
     }
-}
 
-
-
-    /**
-     * POST /api/dedications/{dedication}/like
-     */
     public function like(Request $request, Dedication $dedication)
     {
         $user = $request->user();
@@ -236,9 +228,6 @@ return response()->json([
         ]);
     }
 
-    /**
-     * POST /api/dedications/{dedication}/unlike
-     */
     public function unlike(Request $request, Dedication $dedication)
     {
         $user = $request->user();
@@ -248,5 +237,14 @@ return response()->json([
             'status'      => 'success',
             'likes_count' => $dedication->likes()->count(),
         ]);
+    }
+
+    public function bySong(Song $song)
+    {
+        return Dedication::query()
+            ->where('song_id', $song->id)
+            ->approved()
+            ->latest()
+            ->paginate((int) request('per_page', 20));
     }
 }
