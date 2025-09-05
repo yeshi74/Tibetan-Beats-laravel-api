@@ -10,6 +10,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Admin\PlaylistController;
 use App\Http\Controllers\Admin\UserAdminController;
 use App\Http\Controllers\Admin\DedicationModerationController;
+use App\Http\Controllers\Admin\InAppMessageController;
 
 
 Route::get('/', function () {
@@ -43,6 +44,14 @@ Route::middleware(['auth', 'is_admin'])->prefix('admin')->name('admin.')->group(
     Route::patch('users/{user}/toggle-ban', [UserAdminController::class, 'toggleBan'])->name('users.toggleBan');
     Route::delete('users/{user}', [UserAdminController::class, 'softDelete'])->name('users.destroy');
     Route::post('users/{id}/restore', [UserAdminController::class, 'restore'])->name('users.restore');
+
+    Route::get('in-app-messages', [InAppMessageController::class,'index'])->name('in_app_messages.index');
+    Route::get('in-app-messages/create', [InAppMessageController::class,'create'])->name('in_app_messages.create');
+    Route::post('in-app-messages', [InAppMessageController::class,'store'])->name('in_app_messages.store');
+    Route::get('in-app-messages/{inAppMessage}', [InAppMessageController::class,'show'])->name('in_app_messages.show');
+    Route::get('in-app-messages/{inAppMessage}/edit', [InAppMessageController::class,'edit'])->name('in_app_messages.edit');
+    Route::patch('in-app-messages/{inAppMessage}', [InAppMessageController::class,'update'])->name('in_app_messages.update');
+    Route::delete('in-app-messages/{inAppMessage}', [InAppMessageController::class,'destroy'])->name('in_app_messages.destroy');
 });
 
 

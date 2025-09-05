@@ -44,7 +44,6 @@ class PlaylistController extends Controller
         ]);
     }
 
-
     // Create a new playlist
     public function store(Request $request)
     {
@@ -72,10 +71,22 @@ class PlaylistController extends Controller
         ], 201);
     }
 
-    // Show one playlist with its songs
+    /**
+     * Show one playlist with its songs
+     *
+     * Public access rules:
+     *  - if playlist.user_id is null (global/admin playlist) -> public
+     *  - if playlist.is_featured is true -> public (promoted playlists)
+     * Otherwise require ownership (private playlist).
+     */
     public function show(Request $request, Playlist $playlist)
     {
-        if ($playlist->user_id) {
+        $isGlobal   = is_null($playlist->user_id);
+        $isFeatured = (bool) $playlist->is_featured;
+
+        // Only enforce ownership when it's NOT global and NOT featured
+        if (! $isGlobal && ! $isFeatured) {
+            // If request has no user or not owner -> abort(403)
             $this->authorizePlaylist($request, $playlist);
         }
 
@@ -86,7 +97,8 @@ class PlaylistController extends Controller
                 'id'              => $song->id,
                 'title'           => $song->title,
                 'artist'          => $song->artist,
-                'genre'           => $song->genre,
+                // If your Song->genre is a relation/model, adjust accordingly
+                'genre'           => is_array($song->genre) ? $song->genre : $song->genre,
                 'audio_url'       => $baseUrl . '/api/songs/stream/' . $song->id,
                 'cover_image_url' => $song->cover_image
                     ? $baseUrl . '/storage/' . $song->cover_image
@@ -111,7 +123,6 @@ class PlaylistController extends Controller
             'songs'    => $songs,
         ]);
     }
-
 
     // Rename/update playlist
     public function update(Request $request, Playlist $playlist)
@@ -183,19 +194,23 @@ class PlaylistController extends Controller
     // Ensure the playlist belongs to the current user
     private function authorizePlaylist(Request $request, Playlist $playlist): void
     {
-        if ($playlist->user_id !== $request->user()->id) {
+        $user = $request->user();
+        // if no authenticated user -> unauthorized
+        if (! $user) {
+            abort(403, 'Unauthorized');
+        }
+
+        if ($playlist->user_id !== $user->id) {
             abort(403, 'Unauthorized');
         }
     }
 
-
-    //admin or global playlist
     // Show featured playlists (admin-curated, visible to all)
     public function featured(Request $request)
     {
         $playlists = Playlist::where('is_featured', true)
             ->withCount('songs')
-            ->with('songs') // optional if you want to include songs directly
+            ->with('songs')
             ->latest()
             ->get();
 
@@ -205,13 +220,13 @@ class PlaylistController extends Controller
             'status'    => 'success',
             'playlists' => $playlists->map(function ($p) use ($baseUrl) {
                 return [
-                    'id'          => $p->id,
-                    'name'        => $p->name,
-                    'description' => $p->description,
-                    'type'        => $p->type,
-                    'is_featured' => $p->is_featured,
+                    'id'              => $p->id,
+                    'name'            => $p->name,
+                    'description'     => $p->description,
+                    'type'            => $p->type,
+                    'is_featured'     => $p->is_featured,
                     'cover_image_url' => $p->cover_image ? $baseUrl.'/storage/'.$p->cover_image : null,
-                    'songs_count' => $p->songs_count,
+                    'songs_count'     => $p->songs_count,
                 ];
             }),
         ]);
@@ -240,5 +255,4 @@ class PlaylistController extends Controller
             }),
         ]);
     }
-
 }

@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\ForgotPasswordController;
 use Torann\GeoIP\Facades\GeoIP;
 use App\Http\Controllers\Api\GenreController;
+use App\Http\Controllers\Api\InAppMessageController;
 
 /* -------------------- Public (no auth) -------------------- */
 
@@ -116,6 +117,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/dedications', [DedicationController::class, 'index']);
     Route::post('/dedications/{dedication}/like', [DedicationController::class, 'like']);
     Route::post('/dedications/{dedication}/unlike', [DedicationController::class, 'unlike']);
+
+    Route::get('/in-app-messages', [InAppMessageController::class, 'index']);
+    Route::post('/in-app-messages/{inAppMessage}/impression', [InAppMessageController::class, 'impression']);
+    Route::post('/in-app-messages/{inAppMessage}/click', [InAppMessageController::class, 'click']);
+    Route::post('/in-app-messages/{inAppMessage}/dismiss', [InAppMessageController::class, 'dismiss']);
 
 });
 
