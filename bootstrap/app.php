@@ -22,11 +22,6 @@ return Application::configure(basePath: dirname(__DIR__))
          // Global for all API requests
         $middleware->appendToGroup('api', \App\Http\Middleware\RejectBanned::class);
 
-        // Custom route middleware (aliases)
-        $middleware->alias([
-            'role' => \App\Http\Middleware\EnsureUserHasRole::class,
-        ]);
-
         
     })
     ->withExceptions(function (Exceptions $exceptions): void {

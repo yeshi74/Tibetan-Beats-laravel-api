@@ -1,6 +1,5 @@
 <?php
 
-
 namespace App\Http\Middleware;
 
 use Closure;
@@ -9,14 +8,17 @@ use Symfony\Component\HttpFoundation\Response;
 
 class IsAdmin
 {
+    /**
+     * Handle an incoming request.
+     *
+     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     */
     public function handle(Request $request, Closure $next): Response
     {
-        // Example check: user must be admin (e.g. is_admin = true)
-        if (!auth()->check() || !auth()->user()->is_admin) {
-            abort(403, 'Access denied.');
+        if (!$request->user() || !$request->user()->role || $request->user()->role->name !== 'admin') {
+            abort(403, 'Admins only.');
         }
 
         return $next($request);
     }
 }
-

@@ -39,8 +39,9 @@ Route::middleware(['auth', 'is_admin'])->prefix('admin')->name('admin.')->group(
     Route::get('users/{user}', [UserAdminController::class, 'show'])->name('users.show');
     Route::patch('users/{user}/ban', [UserAdminController::class, 'ban'])->name('users.ban');
     Route::patch('users/{user}/unban', [UserAdminController::class, 'unban'])->name('users.unban');
-    Route::patch('users/{user}/role', [UserAdminController::class, 'updateRole'])->name('users.role');
-    Route::delete('users/{user}', [UserAdminController::class, 'softDelete'])->name('users.delete');
+    Route::patch('users/{user}/role', [UserAdminController::class, 'updateRole'])->name('users.updateRole');
+    Route::patch('users/{user}/toggle-ban', [UserAdminController::class, 'toggleBan'])->name('users.toggleBan');
+    Route::delete('users/{user}', [UserAdminController::class, 'softDelete'])->name('users.destroy');
     Route::post('users/{id}/restore', [UserAdminController::class, 'restore'])->name('users.restore');
 });
 
