@@ -2,26 +2,23 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
-use App\Notifications\CustomVerifyEmail;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Notifications\CustomVerifyEmail;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasApiTokens;
-
-    use SoftDeletes;
+    use HasFactory, Notifiable, HasApiTokens, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
      *
-     * @var list<string>
+     * @var array<int,string>
      */
     protected $fillable = [
         'name',
@@ -30,18 +27,26 @@ class User extends Authenticatable
         'is_admin',
         'mobile',
         'otp_code',
-        'otp_expires_at','profile_image'
-    ];
-
-    protected $casts = [
-        'email_verified_at' => 'datetime',
-        'is_premium' => 'boolean',
+        'otp_expires_at',
+        'profile_image',
+        'role_id', // <- allow updating role via role_id
     ];
 
     /**
-     * The attributes that should be hidden for serialization.
+     * The attributes that should be cast.
      *
-     * @var list<string>
+     * @var array<string,string>
+     */
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'is_premium' => 'boolean',
+        // 'password' => 'hashed', // if you use this feature, make sure framework supports it
+    ];
+
+    /**
+     * Hidden attributes for arrays / JSON.
+     *
+     * @var array<int,string>
      */
     protected $hidden = [
         'password',
@@ -50,76 +55,75 @@ class User extends Authenticatable
 
     protected $appends = ['profile_image_url'];
 
+    // ---------------- Relations & helpers ----------------
+
     /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
+     * Role relation (uses role_id foreign key)
      */
-    protected function casts(): array
+    public function role(): BelongsTo
     {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
+        return $this->belongsTo(Role::class, 'role_id');
     }
 
-
-    public function role() { 
-        return $this->belongsTo(Role::class); 
-    }
-
-    public function hasRole(string $name): bool {
+    /**
+     * Check user has a role by name.
+     */
+    public function hasRole(string $name): bool
+    {
         return $this->role?->name === $name;
     }
 
-    public function hasAnyRole(array $names): bool {
+    /**
+     * Check any role from list.
+     */
+    public function hasAnyRole(array $names): bool
+    {
         return in_array($this->role?->name, $names, true);
     }
 
-    
-
+    /**
+     * Send custom email verification notification.
+     */
     public function sendEmailVerificationNotification()
     {
         $this->notify(new CustomVerifyEmail);
     }
 
+    // User playlists
     public function playlists()
     {
         return $this->hasMany(\App\Models\Playlist::class);
     }
 
-    public function likedSongs() {
-    return $this->belongsToMany(\App\Models\Song::class, 'liked_songs')
-                ->withTimestamps();
-    }
-
-    // app/Models/Song.php
-    public function likedBy() {
-        return $this->belongsToMany(\App\Models\User::class, 'liked_songs')
+    // Songs the user liked
+    public function likedSongs(): BelongsToMany
+    {
+        return $this->belongsToMany(\App\Models\Song::class, 'liked_songs')
                     ->withTimestamps();
     }
 
-    public function getProfileImageUrlAttribute()
+    // Dedication likes
+    public function likedDedications(): BelongsToMany
+    {
+        return $this->belongsToMany(\App\Models\Dedication::class, 'dedication_likes')
+                    ->withTimestamps();
+    }
+
+    // ---------------- Accessors ----------------
+
+    public function getProfileImageUrlAttribute(): ?string
     {
         if (!$this->profile_image) {
             return null;
         }
 
-        // Already an absolute URL
-        if (str_starts_with($this->profile_image, 'http://') || str_starts_with($this->profile_image, 'https://')) {
-            return $this->profile_image;
+        $val = $this->profile_image;
+
+        // If already an absolute URL
+        if (str_starts_with($val, 'http://') || str_starts_with($val, 'https://')) {
+            return $val;
         }
 
-        // ✅ Otherwise build from storage
-        return asset('storage/' . ltrim($this->profile_image, '/'));
+        return asset('storage/' . ltrim($val, '/'));
     }
-
-
-    public function likedDedications()
-    {
-        return $this->belongsToMany(Dedication::class, 'dedication_likes')
-                    ->withTimestamps();
-    }
-
-
 }

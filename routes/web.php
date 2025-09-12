@@ -52,6 +52,12 @@ Route::middleware(['auth', 'is_admin'])->prefix('admin')->name('admin.')->group(
     Route::get('in-app-messages/{inAppMessage}/edit', [InAppMessageController::class,'edit'])->name('in_app_messages.edit');
     Route::patch('in-app-messages/{inAppMessage}', [InAppMessageController::class,'update'])->name('in_app_messages.update');
     Route::delete('in-app-messages/{inAppMessage}', [InAppMessageController::class,'destroy'])->name('in_app_messages.destroy');
+
+    Route::get('artists', [\App\Http\Controllers\Admin\ArtistAdminController::class, 'index'])->name('artists.index');
+    Route::get('artists/{artist}', [\App\Http\Controllers\Admin\ArtistAdminController::class, 'show'])->name('artists.show');
+    Route::patch('artists/{artist}/approve', [\App\Http\Controllers\Admin\ArtistAdminController::class, 'approve'])->name('artists.approve');
+    Route::patch('artists/{artist}/reject', [\App\Http\Controllers\Admin\ArtistAdminController::class, 'reject'])->name('artists.reject');
+
 });
 
 

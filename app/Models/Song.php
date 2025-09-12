@@ -16,7 +16,9 @@ class Song extends Model
         'cover_image',
         'album_id',
         'play_count',
-        'genre_id', // ✅ only keep relation id, not string "genre"
+        'genre_id',
+        'artist_id',
+        'status',
     ];
 
     protected $appends = ['audio_url', 'cover_image_url'];

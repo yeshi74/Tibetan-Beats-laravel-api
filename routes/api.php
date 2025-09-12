@@ -15,6 +15,8 @@ use App\Http\Controllers\Api\ForgotPasswordController;
 use Torann\GeoIP\Facades\GeoIP;
 use App\Http\Controllers\Api\GenreController;
 use App\Http\Controllers\Api\InAppMessageController;
+use App\Http\Controllers\Api\SongUploadController;
+use App\Http\Controllers\Api\ArtistController;
 
 /* -------------------- Public (no auth) -------------------- */
 
@@ -122,6 +124,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/in-app-messages/{inAppMessage}/impression', [InAppMessageController::class, 'impression']);
     Route::post('/in-app-messages/{inAppMessage}/click', [InAppMessageController::class, 'click']);
     Route::post('/in-app-messages/{inAppMessage}/dismiss', [InAppMessageController::class, 'dismiss']);
+
+    Route::post('artists/apply', [ArtistController::class, 'apply']);
+    Route::get('artists/me', [ArtistController::class, 'me']);
+
+    Route::post('songs', [SongUploadController::class, 'store']);
 
 });
 
