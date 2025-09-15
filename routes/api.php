@@ -104,18 +104,27 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/me/profile-image', [UserController::class, 'updateProfileImage']);
     Route::get('/me', function (\Illuminate\Http\Request $request) {
         $u = $request->user();
-        $location = geoip()->getLocation($request->ip());
+
+        // attempt to get geoip but don't fail if not configured
+        $country = 'IN';
+        $currency = 'INR';
+        try {
+            $location = geoip()->getLocation($request->ip());
+            $country = $location->country ?? $country;
+            $currency = $location->currency ?? $currency;
+        } catch (\Throwable $e) {
+            \Log::warning('[/me] geoip failed: ' . $e->getMessage());
+        }
 
         return response()->json([
             'id'         => $u->id,
             'name'       => $u->name,
             'email'      => $u->email,
             'is_premium' => (bool) $u->is_premium,
-            'country'    => $location->country ?? 'IN',
-            'currency'   => $location->currency ?? 'INR',
+            'country'    => $country,
+            'currency'   => $currency,
         ]);
     });
-
     Route::get('/dedications', [DedicationController::class, 'index']);
     Route::post('/dedications/{dedication}/like', [DedicationController::class, 'like']);
     Route::post('/dedications/{dedication}/unlike', [DedicationController::class, 'unlike']);
@@ -129,6 +138,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('artists/me', [ArtistController::class, 'me']);
 
     Route::post('songs', [SongUploadController::class, 'store']);
+
+    Route::post('/admin/songs/{song}/approve', [\App\Http\Controllers\Admin\SongModerationController::class, 'approve']);
+    Route::post('/admin/songs/{song}/reject', [\App\Http\Controllers\Admin\SongModerationController::class, 'reject']);
 
 });
 

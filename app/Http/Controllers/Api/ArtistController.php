@@ -2,10 +2,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Artist;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
+use App\Models\Artist;
+use App\Models\Song;
 
 class ArtistController extends Controller
 {
@@ -50,10 +53,59 @@ class ArtistController extends Controller
 }
 
 
-    public function me(Request $request)
-    {
-        $user = $request->user();
-        $artist = Artist::where('user_id', $user->id)->first();
-        return response()->json(['success'=>true, 'data'=>$artist]);
+public function me(Request $request)
+{
+    $user = $request->user();
+    $uid = $user ? $user->id : null;
+    
+
+    if (!$user) {
+        return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 401);
     }
+
+    // find artist record for this user
+    $artist = Artist::where('user_id', $user->id)->first();
+
+    if (!$artist) {
+        \Log::info('[ArtistController::me] no artist found for user_id: ' . $user->id);
+        return response()->json(['status' => 'success', 'data' => ['artist' => null, 'songs' => []]]);
+    }
+
+    // Fetch songs explicitly by artist.id to avoid relationship pitfalls
+    $songsQuery = Song::where('artist_id', $artist->id)
+        ->orderByDesc('created_at');
+
+    $songs = $songsQuery->get()->map(function ($s) {
+        return [
+            'id' => $s->id,
+            'title' => $s->title,
+            'status' => $s->status,
+            'cover_image_url' => $s->cover_image ? url('storage/' . ltrim($s->cover_image, '/')) : null,
+            'file_path' => $s->file_path,
+            'audio_url' => url('/api/songs/stream/' . $s->id),
+            'created_at' => optional($s->created_at)->toIso8601String(),
+        ];
+    })->toArray();
+
+    $artistPayload = [
+        'id' => $artist->id,
+        'user_id' => $artist->user_id,
+        'display_name' => $artist->display_name,
+        'profile_image' => $artist->profile_image ? url('storage/' . ltrim($artist->profile_image, '/')) : null,
+        'verified' => (bool) $artist->verified,
+        'meta' => $artist->meta,
+    ];
+
+    \Log::info('[ArtistController::me] artist id='.$artist->id.' songs_count='.$songsQuery->count());
+
+    return response()->json([
+        'status' => 'success',
+        'data' => [
+            'artist' => $artistPayload,
+            'songs' => $songs,
+        ],
+    ]);
+}
+
+
 }
