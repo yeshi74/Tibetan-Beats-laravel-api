@@ -55,6 +55,7 @@
                         <th class="px-4 py-3">Album</th>
                         <th class="px-4 py-3">Audio</th>
                         <th class="px-4 py-3 text-center">Actions</th>
+                        <th class="px-4 py-3">Status</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -99,18 +100,47 @@
                             </td>
 
                             <!-- Actions -->
-                            <td class="px-4 py-3 text-center">
-                                <div class="flex justify-center gap-2">
-                                    <a href="{{ route('admin.songs.edit', $song) }}" 
-                                       class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs">Edit</a>
-                                    <form action="{{ route('admin.songs.destroy', $song) }}" method="POST" class="inline"
-                                          onsubmit="return confirm('Delete this song?')">
-                                        @csrf @method('DELETE')
-                                        <button type="submit" 
-                                                class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs">Delete</button>
-                                    </form>
-                                </div>
-                            </td>
+<td class="px-4 py-3 text-center">
+    <div class="flex justify-center gap-2">
+        <a href="{{ route('admin.songs.edit', $song) }}" 
+           class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs">Edit</a>
+
+        <!-- ✅ Approve/Reject for pending songs -->
+        @if($song->status === 'pending')
+            <form action="{{ route('admin.songs.approve', $song) }}" method="POST" class="inline"
+                  onsubmit="return confirm('Approve this song?')">
+                @csrf @method('PATCH')
+                <button type="submit" 
+                        class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs">Approve</button>
+            </form>
+
+            <form action="{{ route('admin.songs.reject', $song) }}" method="POST" class="inline"
+                  onsubmit="return confirm('Reject this song?')">
+                @csrf @method('PATCH')
+                <button type="submit" 
+                        class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs">Reject</button>
+            </form>
+        @endif
+
+        <form action="{{ route('admin.songs.destroy', $song) }}" method="POST" class="inline"
+              onsubmit="return confirm('Delete this song?')">
+            @csrf @method('DELETE')
+            <button type="submit" 
+                    class="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded text-xs">Delete</button>
+        </form>
+    </div>
+</td>
+
+<td class="px-4 py-3">
+    @if($song->status === 'pending')
+        <span class="px-2 py-1 text-xs font-semibold rounded bg-yellow-600 text-white">Pending</span>
+    @elseif($song->status === 'published')
+        <span class="px-2 py-1 text-xs font-semibold rounded bg-green-600 text-white">Published</span>
+    @else
+        <span class="px-2 py-1 text-xs font-semibold rounded bg-red-600 text-white">Rejected</span>
+    @endif
+</td>
+
                         </tr>
                     @empty
                         <tr>

@@ -129,4 +129,22 @@ class SongAdminController extends Controller
         return redirect()->route('admin.songs.index')
             ->with('success', 'Song deleted.');
     }
+
+
+
+public function approve(Song $song)
+{
+    $song->status = 'published';
+    $song->save();
+
+    return redirect()->back()->with('success', "✅ '{$song->title}' approved and published.");
+}
+
+public function reject(Song $song)
+{
+    $song->status = 'rejected';
+    $song->save();
+
+    return redirect()->back()->with('error', "❌ '{$song->title}' rejected.");
+}
 }

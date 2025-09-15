@@ -58,6 +58,9 @@ Route::middleware(['auth', 'is_admin'])->prefix('admin')->name('admin.')->group(
     Route::patch('artists/{artist}/approve', [\App\Http\Controllers\Admin\ArtistAdminController::class, 'approve'])->name('artists.approve');
     Route::patch('artists/{artist}/reject', [\App\Http\Controllers\Admin\ArtistAdminController::class, 'reject'])->name('artists.reject');
 
+    Route::patch('songs/{song}/approve', [SongAdminController::class, 'approve'])->name('songs.approve');
+    Route::patch('songs/{song}/reject', [SongAdminController::class, 'reject'])->name('songs.reject');
+
 });
 
 
