@@ -10,24 +10,12 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Log;
 
 class SongUploadController extends Controller
 {
-    /**
-     * POST /api/songs
-     *
-     * Artist uploads a song. Uploaded songs are always created with "pending"
-     * status and require admin approval before becoming publicly visible.
-     *
-     * Multipart form fields:
-     *  - title         (required)
-     *  - audio         (required file) : mp3,m4a,wav,ogg,flac
-     *  - cover_image   (optional file) : jpg,jpeg,png
-     *  - genre_id      (optional)
-     *  - album_id      (optional)
-     */
     public function store(Request $request)
     {
         $user = $request->user();
@@ -35,34 +23,48 @@ class SongUploadController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 401);
         }
 
-        // Ensure user has an artist record and is verified
         $artist = Artist::where('user_id', $user->id)->first();
         if (!$artist || !($artist->verified ?? false)) {
             return response()->json(['status' => 'error', 'message' => 'You must be a verified artist to upload songs'], 403);
         }
 
-        // Validate incoming request
+        // Early detect low-level upload errors for both audio and cover
+        $fileErr = $this->detectUploadErrorMessage('audio');
+        if ($fileErr !== null) {
+            Log::warning('[SongUpload] audio upload error: ' . $fileErr, ['userId' => $user->id]);
+            return response()->json(['status' => 'error', 'message' => $fileErr], 422);
+        }
+        $coverErr = $this->detectUploadErrorMessage('cover_image');
+        if ($coverErr !== null) {
+            Log::warning('[SongUpload] cover_image upload error: ' . $coverErr, ['userId' => $user->id]);
+            return response()->json(['status' => 'error', 'message' => $coverErr], 422);
+        }
+
         $rules = [
             'title' => 'required|string|max:255',
-            'audio' => 'required|file|mimes:mp3,m4a,wav,ogg,flac|max:51200', // 50MB
-            'cover_image' => 'nullable|image|mimes:jpeg,png,jpg|max:5120', // 5MB
+            'audio' => 'required|file|mimes:mp3,m4a,wav,ogg,flac|max:51200',
+            'cover_image' => 'nullable|image|mimes:jpeg,png,jpg|max:5120',
             'genre_id' => 'nullable|integer|exists:genres,id',
             'album_id' => 'nullable|integer|exists:albums,id',
+            'is_published' => 'nullable|boolean',
         ];
 
-        $v = Validator::make($request->all(), $rules);
+        $v = Validator::make($request->all(), $rules, [
+            'audio.max' => 'Audio file too large. Max allowed is 50MB.',
+            'cover_image.max' => 'Cover image too large. Max allowed is 5MB.',
+        ]);
+
         if ($v->fails()) {
+            Log::warning('[SongUpload] validation failed', ['errors' => $v->errors()]);
             return response()->json(['status' => 'error', 'errors' => $v->errors()], 422);
         }
 
         DB::beginTransaction();
         try {
-            // Prepare filenames and store files on public disk
             $audio = $request->file('audio');
             $slug = Str::slug(substr($request->input('title'), 0, 80) ?: ('song-'.$user->id));
             $audioFilename = $slug . '-' . time() . '.' . $audio->getClientOriginalExtension();
             $audioPath = $audio->storeAs('songs/audio', $audioFilename, 'public');
-            // compute a direct URL so client can play the uploaded file immediately
             $audioUrl = Storage::disk('public')->url($audioPath);
 
             $coverPath = null;
@@ -74,7 +76,7 @@ class SongUploadController extends Controller
                 $coverUrl = Storage::disk('public')->url($coverPath);
             }
 
-            // Build attributes array only for columns that actually exist
+            // Build data array conditionally depending on which columns actually exist
             $data = [];
 
             if (Schema::hasColumn('songs', 'title')) {
@@ -90,13 +92,11 @@ class SongUploadController extends Controller
                 $data['file_path'] = $audioPath;
             }
             if (Schema::hasColumn('songs', 'audio_url')) {
-                // only write audio_url if column exists
                 $data['audio_url'] = $audioUrl;
             }
             if (Schema::hasColumn('songs', 'cover_image')) {
                 $data['cover_image'] = $coverPath;
             }
-            // IMPORTANT: we will NOT set cover_image_url unless the column exists
             if (Schema::hasColumn('songs', 'cover_image_url') && $coverUrl !== null) {
                 $data['cover_image_url'] = $coverUrl;
             }
@@ -106,30 +106,25 @@ class SongUploadController extends Controller
             if (Schema::hasColumn('songs', 'album_id')) {
                 $data['album_id'] = $request->input('album_id');
             }
-
-            // Always create as pending for admin review
             if (Schema::hasColumn('songs', 'status')) {
+                // By default mark pending for moderation; ignore client is_published for artists
                 $data['status'] = 'pending';
             }
             if (Schema::hasColumn('songs', 'is_published')) {
-                // keep default false (explicitly set to 0)
+                // keep false by default
                 $data['is_published'] = 0;
             }
 
-            // Create the song record
             $song = Song::create($data);
 
             DB::commit();
 
-            // Return useful URLs to the client (even if not persisted)
             $payload = $song->toArray();
             $payload['_audio_url'] = $audioUrl;
             if ($coverUrl) $payload['_cover_image_url'] = $coverUrl;
 
-            // nice friendly message for artist UX
             return response()->json([
                 'status' => 'success',
-                'message' => 'Song uploaded successfully and is pending admin approval. You can track its status in "My Uploads".',
                 'data' => $payload,
             ], 201);
         } catch (\Throwable $e) {
@@ -137,5 +132,29 @@ class SongUploadController extends Controller
             Log::error('[SongUpload] failed: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
             return response()->json(['status' => 'error', 'message' => 'Upload failed'], 500);
         }
+    }
+
+    /**
+     * Helper: detect PHP upload errors for a given field and return user-friendly message or null.
+     */
+    private function detectUploadErrorMessage(string $field): ?string
+    {
+        if (!isset($_FILES[$field])) {
+            return null;
+        }
+        $err = isset($_FILES[$field]['error']) ? intval($_FILES[$field]['error']) : UPLOAD_ERR_OK;
+        if ($err === UPLOAD_ERR_OK) return null;
+
+        $map = [
+            UPLOAD_ERR_INI_SIZE   => 'The uploaded file exceeds the server\'s maximum allowed size. Increase upload_max_filesize/post_max_size or upload a smaller file.',
+            UPLOAD_ERR_FORM_SIZE  => 'The uploaded file exceeds the form maximum size.',
+            UPLOAD_ERR_PARTIAL    => 'The file was only partially uploaded. Please try again.',
+            UPLOAD_ERR_NO_FILE    => 'No file was uploaded.',
+            UPLOAD_ERR_NO_TMP_DIR => 'Server misconfiguration: missing temporary folder.',
+            UPLOAD_ERR_CANT_WRITE => 'Server error: failed to write uploaded file.',
+            UPLOAD_ERR_EXTENSION  => 'File upload stopped by a PHP extension.',
+        ];
+
+        return $map[$err] ?? 'Unknown upload error (code: ' . $err . ').';
     }
 }
