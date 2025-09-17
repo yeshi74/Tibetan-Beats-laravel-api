@@ -17,7 +17,6 @@ class SongApiController extends Controller
     protected function isAdmin($user): bool
     {
         if (!$user) return false;
-        // support either a boolean or a role column
         return ($user->is_admin ?? false) || (($user->role ?? null) === 'admin');
     }
 
@@ -26,10 +25,24 @@ class SongApiController extends Controller
         if (!$user) return false;
         if ($this->isAdmin($user)) return true;
 
-        // If your Song owns an artist_id that references artists.id,
-        // replace with: $song->artist_id === ($user->artist->id ?? null)
-        return ($song->artist_user_id ?? null) === $user->id   // if you store uploader user id
+        // adjust these checks according to your schema:
+        return ($song->artist_user_id ?? null) === $user->id
             || ($song->artist_id ?? null) === ($user->artist->id ?? null);
+    }
+
+    /**
+     * Resolve user from request or sanctum guard so public routes can accept Bearer tokens.
+     */
+    protected function resolveUser(Request $request)
+    {
+        $user = $request->user();
+        if ($user) return $user;
+
+        try {
+            return auth('sanctum')->user();
+        } catch (\Throwable $e) {
+            return null;
+        }
     }
 
     /**
@@ -38,18 +51,20 @@ class SongApiController extends Controller
     protected function transformSong(Request $request, Song $song, array $likedIds = [])
     {
         $baseUrl = $request->getSchemeAndHttpHost();
+        $isLiked = in_array($song->id, $likedIds);
 
         return [
             'id'              => $song->id,
             'title'           => $song->title,
             'artist'          => $song->artist,
             'genre_id'        => $song->genre_id,
-            'genre'           => optional($song->genre)->name,
+            'genre'           => $song->genre ? $song->genre->name : null,
             'audio_url'       => $baseUrl . '/api/songs/stream/' . $song->id,
             'cover_image_url' => $song->cover_image ? $baseUrl . '/storage/' . ltrim($song->cover_image, '/') : null,
             'created_at'      => optional($song->created_at)->toIso8601String(),
-            'is_liked'        => in_array($song->id, $likedIds),
-            'status'          => $song->status, // useful on "my uploads"
+            // compatibility: boolean and numeric forms
+            'is_liked'        => (bool) $isLiked,
+            'liked'           => $isLiked ? 1 : 0,
         ];
     }
 
@@ -68,8 +83,8 @@ class SongApiController extends Controller
         if ($user) {
             return $query->where(function ($q) use ($user) {
                 $q->where('status', 'published')
-                  ->orWhere('artist_user_id', $user->id) // if you store uploader user id
-                  ->orWhere('artist_id', optional($user->artist)->id); // if you store artists.id
+                  ->orWhere('artist_user_id', $user->id)
+                  ->orWhere('artist_id', optional($user->artist)->id);
             });
         }
 
@@ -78,33 +93,60 @@ class SongApiController extends Controller
 
     /* -------------------------------- Endpoints ------------------------------- */
 
-    /** GET /api/songs */
+    /**
+     * GET /api/songs
+     */
     public function index(Request $request)
     {
-        $user = $request->user();
+        $user = $this->resolveUser($request);
 
-        $songs = $this->visibilityQuery(Song::query(), $user)
+        // fetch liked song ids for current user (empty array for guests)
+        $likedIds = $user
+            ? DB::table('liked_songs')->where('user_id', $user->id)->pluck('song_id')->toArray()
+            : [];
+
+        $songs = Song::where('status', 'published')
             ->latest()
-            ->take(25)
             ->get()
-            ->map(fn ($s) => $this->transformSong($request, $s));
+            ->map(function ($song) use ($request, $likedIds, $user) {
+                $isLiked = in_array($song->id, $likedIds, true);
+
+                return [
+                    'id'              => $song->id,
+                    'title'           => $song->title,
+                    'artist'          => $song->artist,
+                    'genre_id'        => $song->genre_id,
+                    'genre'           => $song->genre ? $song->genre->name : null,
+                    'audio_url'       => $request->getSchemeAndHttpHost() . '/api/songs/stream/' . $song->id,
+                    'cover_image_url' => $song->cover_image ? $request->getSchemeAndHttpHost() . '/storage/' . ltrim($song->cover_image, '/') : null,
+                    'created_at'      => optional($song->created_at)->toIso8601String(),
+                    'is_liked'        => (bool) $isLiked,
+                    'liked'           => $isLiked ? 1 : 0,
+                    'download_url'    => ($user && ($user->is_premium ?? false)) ? $request->getSchemeAndHttpHost() . '/api/songs/' . $song->id . '/download' : null,
+                ];
+            });
 
         return response()->json(['status' => 'success', 'data' => $songs]);
     }
 
-    /** Stream with Range support; guard unpublished */
+    /**
+     * Audio streaming with Range support
+     * GET /api/songs/stream/{id}
+     */
     public function stream(Request $request, $id)
     {
         $song = Song::findOrFail($id);
-        $user = $request->user();
+        $user = $this->resolveUser($request);
 
-        // Block streaming for unpublished unless admin or owner
+        // Block streaming for unpublished unless admin/owner
         if ($song->status !== 'published' && !$this->canSeeUnpublished($user, $song)) {
             return response()->json(['message' => 'Not found'], 404);
         }
 
-        // Increment plays non-fatally
-        try { $song->increment('play_count'); } catch (\Throwable $e) {
+        // non-fatal increment of play_count
+        try {
+            $song->increment('play_count');
+        } catch (\Throwable $e) {
             Log::warning("[SongApiController::stream] increment failed: {$song->id} :: ".$e->getMessage());
         }
 
@@ -120,7 +162,8 @@ class SongApiController extends Controller
         $disk = Storage::disk('public');
 
         $isAbsoluteUrl = function (?string $url): bool {
-            return $url && (bool) preg_match('#^https?://#i', $url);
+            if (!$url) return false;
+            return (bool) preg_match('#^https?://#i', $url);
         };
 
         $mapAudioUrlToStoragePath = function (string $url) use ($request) : ?string {
@@ -209,19 +252,30 @@ class SongApiController extends Controller
         return $response;
     }
 
-    /** GET /api/songs/most-played */
+    /**
+     * GET /api/songs/most-played
+     */
     public function mostPlayed(Request $request)
     {
-        $user = $request->user();
+        $user = $this->resolveUser($request);
+        $likedIds = $user
+            ? DB::table('liked_songs')->where('user_id', $user->id)->pluck('song_id')->toArray()
+            : [];
 
-        $songs = $this->visibilityQuery(Song::orderByDesc('play_count'), $user)
+        $songs = Song::orderByDesc('play_count')
             ->take(12)
             ->get()
-            ->map(fn ($s) => $this->transformSong($request, $s));
+            ->map(fn($s) => $this->transformSong($request, $s, $likedIds));
 
-        return response()->json(['status' => 'success', 'data' => $songs]);
+        return response()->json([
+            'status' => 'success',
+            'data'   => $songs,
+        ]);
     }
 
+    /**
+     * Increment lightweight play counter (non-fatal)
+     */
     public function markPlayed(Song $song)
     {
         $song->increment('play_count');
@@ -240,11 +294,13 @@ class SongApiController extends Controller
         ]);
     }
 
-    /** GET /api/songs/search?q= */
+    /**
+     * GET /api/songs/search?q=
+     */
     public function search(Request $request)
     {
         $query = (string) $request->input('q', '');
-        $user  = $request->user();
+        $user  = $this->resolveUser($request);
 
         $likedIds = $user
             ? DB::table('liked_songs')->where('user_id', $user->id)->pluck('song_id')->toArray()
@@ -264,17 +320,18 @@ class SongApiController extends Controller
         return response()->json(['status' => 'success', 'data' => $songs]);
     }
 
-    /** GET /api/songs/{id} */
+    /**
+     * GET /api/songs/{id}
+     */
     public function show(Request $request, $id)
     {
         $song = Song::findOrFail($id);
-        $user = $request->user();
+        $user = $this->resolveUser($request);
 
         if ($song->status !== 'published' && !$this->canSeeUnpublished($user, $song)) {
             return response()->json(['message' => 'Not Found'], 404);
         }
 
-        // keep previous non-fatal increment
         try { $song->increment('play_count'); } catch (\Throwable $e) {
             Log::warning('[Show] play_count increment failed: '.$e->getMessage());
         }
@@ -289,7 +346,10 @@ class SongApiController extends Controller
         ]);
     }
 
-    /** POST /api/songs  (mobile upload) */
+    /**
+     * POST /api/songs  (mobile upload)
+     * Note: this route should remain authenticated in api.php (you're already doing that)
+     */
     public function store(Request $request)
     {
         $request->validate([
@@ -320,19 +380,18 @@ class SongApiController extends Controller
             'album_id'        => $request->album_id,
             'genre_id'        => $request->genre_id,
             'status'          => $status,
-            // Store who uploaded (optional; uncomment if your schema has these):
-            // 'artist_user_id'   => $user?->id,
-            // 'artist_id'        => optional($user->artist)->id,
         ]);
 
         return response()->json([
             'status'  => 'success',
             'message' => 'Song uploaded successfully',
-            'data'    => $this->transformSong($request, $song),
+            'data'    => $this->transformSong($request, $song, []),
         ], 201);
     }
 
-    /** PUT /api/songs/{id} */
+    /**
+     * PUT /api/songs/{id}
+     */
     public function update(Request $request, $id)
     {
         $song = Song::findOrFail($id);
@@ -365,11 +424,13 @@ class SongApiController extends Controller
         return response()->json([
             'status'  => 'success',
             'message' => 'Song updated successfully',
-            'data'    => $this->transformSong($request, $song),
+            'data'    => $this->transformSong($request, $song, []),
         ]);
     }
 
-    /** DELETE /api/songs/{id} */
+    /**
+     * DELETE /api/songs/{id}
+     */
     public function destroy($id)
     {
         $song = Song::findOrFail($id);
@@ -382,47 +443,66 @@ class SongApiController extends Controller
         return response()->json(['status' => 'success', 'message' => 'Song deleted successfully']);
     }
 
-    /** GET /api/songs/recent */
+    /**
+     * GET /api/songs/recent
+     */
     public function recent(Request $request)
     {
-        $user = $request->user();
+        $user = $this->resolveUser($request);
         $likedIds = $user
             ? DB::table('liked_songs')->where('user_id', $user->id)->pluck('song_id')->toArray()
             : [];
 
-        $songs = $this->visibilityQuery(Song::query(), $user)
-            ->orderBy('created_at', 'desc')
-            ->take(15)
-            ->get()
+        $songs = Song::orderBy('created_at', 'desc')->take(15)->get()
             ->map(fn ($s) => $this->transformSong($request, $s, $likedIds));
 
         return response()->json(['status' => 'success', 'data' => $songs]);
     }
 
-    /** GET /api/songs/genre/{id} */
+    /**
+     * GET /api/songs/by-genre-id/{id}
+     */
     public function byGenre(Request $request, $id)
     {
-        $user = $request->user();
+        $user = $this->resolveUser($request);
         $likedIds = $user
             ? DB::table('liked_songs')->where('user_id', $user->id)->pluck('song_id')->toArray()
             : [];
 
-        $songs = $this->visibilityQuery(Song::where('genre_id', $id), $user)
+        $songs = Song::where('genre_id', $id)
             ->latest()
             ->take(25)
             ->get()
             ->map(fn ($s) => $this->transformSong($request, $s, $likedIds));
 
-        return response()->json(['status' => 'success', 'data' => $songs]);
+        return response()->json([
+            'status' => 'success',
+            'data'   => $songs,
+        ]);
     }
 
-    /** GET /api/songs/by-genre-id/{id} (alias) */
     public function byGenreId(Request $request, $id)
     {
-        return $this->byGenre($request, $id);
+        $user = $this->resolveUser($request);
+        $likedIds = $user
+            ? DB::table('liked_songs')->where('user_id', $user->id)->pluck('song_id')->toArray()
+            : [];
+
+        $songs = Song::where('genre_id', $id)
+            ->latest()
+            ->take(25)
+            ->get()
+            ->map(fn ($s) => $this->transformSong($request, $s, $likedIds));
+
+        return response()->json([
+            'status' => 'success',
+            'data'   => $songs,
+        ]);
     }
 
-    /** GET /api/songs/genres */
+    /**
+     * GET /api/songs/genres
+     */
     public function genres()
     {
         $genres = Song::select('genre')
@@ -433,7 +513,9 @@ class SongApiController extends Controller
         return response()->json(['status' => 'success', 'data' => $genres]);
     }
 
-    /** POST /api/songs/{song}/like */
+    /**
+     * POST /api/songs/{song}/like
+     */
     public function likeSong(Request $request, Song $song)
     {
         $user = $request->user();
@@ -447,7 +529,9 @@ class SongApiController extends Controller
         return response()->json(['status' => 'success', 'liked' => true, 'song_id' => $song->id]);
     }
 
-    /** DELETE /api/songs/{song}/like */
+    /**
+     * DELETE /api/songs/{song}/like
+     */
     public function unlikeSong(Request $request, Song $song)
     {
         $user = $request->user();
@@ -458,7 +542,9 @@ class SongApiController extends Controller
         return response()->json(['status' => 'success', 'liked' => false, 'song_id' => $song->id]);
     }
 
-    /** GET /api/me/likes */
+    /**
+     * GET /api/me/likes
+     */
     public function likedSongs(Request $request)
     {
         $user = $request->user();
@@ -480,26 +566,31 @@ class SongApiController extends Controller
         return response()->json(['status' => 'success', 'songs' => $songs]);
     }
 
-    /** GET /api/songs/most-liked */
+    /**
+     * GET /api/songs/most-liked
+     */
     public function mostLiked(Request $request)
     {
-        $user = $request->user();
+        $user = $this->resolveUser($request);
+        $likedIds = $user
+            ? DB::table('liked_songs')->where('user_id', $user->id)->pluck('song_id')->toArray()
+            : [];
 
-        $base = Song::select('songs.*')
+        $songs = Song::select('songs.*')
             ->leftJoin('liked_songs', 'songs.id', '=', 'liked_songs.song_id')
             ->selectRaw('COUNT(liked_songs.id) as likes_count')
-            ->groupBy('songs.id');
-
-        $songs = $this->visibilityQuery($base, $user)
+            ->groupBy('songs.id')
             ->orderByDesc('likes_count')
             ->take(15)
             ->get()
-            ->map(fn ($s) => $this->transformSong($request, $s));
+            ->map(fn ($s) => $this->transformSong($request, $s, $likedIds));
 
         return response()->json(['status' => 'success', 'data' => $songs]);
     }
 
-    /** Premium download */
+    /**
+     * Premium download
+     */
     public function download(Request $request, Song $song)
     {
         $user = $request->user();
@@ -507,7 +598,6 @@ class SongApiController extends Controller
             return response()->json(['message' => 'Premium required'], 403);
         }
 
-        // Also enforce published visibility for downloads (unless admin/owner)
         if ($song->status !== 'published' && !$this->canSeeUnpublished($user, $song)) {
             return response()->json(['message' => 'Not found'], 404);
         }

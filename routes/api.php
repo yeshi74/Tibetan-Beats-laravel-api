@@ -12,100 +12,62 @@ use App\Http\Controllers\Api\StripeController;
 use App\Http\Controllers\Api\DedicationController;
 use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\ForgotPasswordController;
-use Torann\GeoIP\Facades\GeoIP;
 use App\Http\Controllers\Api\GenreController;
 use App\Http\Controllers\Api\InAppMessageController;
 use App\Http\Controllers\Api\SongUploadController;
 use App\Http\Controllers\Api\ArtistController;
+use App\Http\Controllers\Admin\SongModerationController;
 
 /* -------------------- Public (no auth) -------------------- */
 
-// songs (public reads)
+// 🎵 Song discovery (public, but personalized if Bearer token sent)
 Route::get('/songs/recent', [SongApiController::class, 'recent']);
 Route::get('/songs/genres', [SongApiController::class, 'genres']);
 Route::get('/songs/genre/{genre}', [SongApiController::class, 'byGenre']);
+Route::get('/songs/by-genre-id/{id}', [SongApiController::class, 'byGenreId']);
 Route::get('/songs/search', [SongApiController::class, 'search']);
 Route::get('/songs', [SongApiController::class, 'index']);
-
 Route::get('/songs/most-played', [SongApiController::class, 'mostPlayed']);
-
 Route::get('/songs/most-liked', [SongApiController::class, 'mostLiked']);
+Route::get('/songs/{id}', [SongApiController::class, 'show']);
+Route::get('/songs/stream/{id}', [SongApiController::class, 'stream']); // stream url
+Route::post('/songs/{song}/played', [SongApiController::class, 'markPlayed']);
 
-// Route::get('/songs/genre/{id}', [SongApiController::class, 'byGenre']);
-
-Route::get('/songs/by-genre-id/{id}', [SongApiController::class, 'byGenreId']);
-
-Route::post('/songs/{id}/play', [SongController::class, 'incrementPlayCount']);
-
-Route::get('/songs/{id}', [SongApiController::class, 'show']); // keep only once
-
-// 🔹 stream route (needed by audio_url)
-Route::get('/songs/stream/{id}', [SongApiController::class, 'stream']);
-
-// auth (public)
+// Auth (public endpoints)
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login',    [AuthController::class, 'login']);
 
-// Stripe webhook (public, no auth)
+// Stripe webhook (public)
 Route::post('/stripe/webhook', [StripeController::class, 'webhook']);
 
+// Password reset
+Route::post('/forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail']);
+Route::post('/reset-password',  [ForgotPasswordController::class, 'reset']);
 
-/* -------------------- Authenticated -------------------- */
+// Public dedications (read only)
+Route::get('/songs/{song}/dedications', [DedicationController::class, 'bySong']);
 
+// Public playlists (global/admin curated)
+Route::get('/featured-playlists', [PlaylistController::class, 'featured']);
+Route::get('/playlists/by-type/{type}', [PlaylistController::class, 'byType']);
+
+// Public genres
+Route::get('/genres', [GenreController::class, 'index']); 
+Route::get('/genres/featured', [GenreController::class, 'featured']);
+
+
+/* -------------------- Authenticated (requires sanctum) -------------------- */
 Route::middleware('auth:sanctum')->group(function () {
-    // profile
+    // 👤 Profile
     Route::post('/logout', [AuthController::class, 'logout']);
-    Route::get('/user',    [AuthController::class, 'user']); // single /user endpoint
+    Route::get('/user',    [AuthController::class, 'user']);
     Route::patch('/user/update',         [AuthController::class, 'updateProfile']);
     Route::post('/user/change-password', [AuthController::class, 'changePassword']);
+    Route::post('/me/profile-image',     [UserController::class, 'updateProfileImage']);
 
     // convenience /me payload
-    // Route::get('/me', function (Request $request) {
-    //     $u = $request->user();
-    //     return response()->json([
-    //         'id'         => $u->id,
-    //         'name'       => $u->name,
-    //         'email'      => $u->email,
-    //         'is_premium' => (bool) $u->is_premium,
-    //     ]);
-    // });
-
-    // likes
-    Route::get('/me/likes', [SongApiController::class, 'likedSongs']);
-    Route::post('/songs/{song}/like', [SongApiController::class, 'likeSong']);
-    Route::delete('/songs/{song}/like', [SongApiController::class, 'unlikeSong']);
-
-    // downloads (server should enforce premium)
-    Route::get('/songs/{song}/download', [SongApiController::class, 'download'])
-        ->name('songs.download');
-
-    // playlists
-    Route::get('/playlists', [PlaylistController::class, 'index']);
-    Route::post('/playlists', [PlaylistController::class, 'store']);
-    Route::get('/playlists/{playlist}', [PlaylistController::class, 'show']);
-    Route::put('/playlists/{playlist}', [PlaylistController::class, 'update']);
-    Route::delete('/playlists/{playlist}', [PlaylistController::class, 'destroy']);
-    Route::post('/playlists/{playlist}/songs', [PlaylistController::class, 'addSong']);
-    Route::delete('/playlists/{playlist}/songs/{song}', [PlaylistController::class, 'removeSong']);
-
-    Route::post('/dedications', [DedicationController::class, 'store']);
-
-    Route::get('/users/search', [\App\Http\Controllers\Api\UserSearchController::class, 'search']);
-
-
-    // Stripe checkout (create session)
-    Route::post('/stripe/checkout', [StripeController::class, 'createCheckoutSession']);
-
-    // ✅ Customer Billing Portal (manage/cancel/change plan)
-    Route::post('/stripe/billing-portal', [StripeController::class, 'createBillingPortal']);
-
-    Route::post('/stripe/confirm', [StripeController::class, 'confirmAfterCheckout']);
-
-    Route::post('/me/profile-image', [UserController::class, 'updateProfileImage']);
-    Route::get('/me', function (\Illuminate\Http\Request $request) {
+    Route::get('/me', function (Request $request) {
         $u = $request->user();
-
-        // attempt to get geoip but don't fail if not configured
         $country = 'IN';
         $currency = 'INR';
         try {
@@ -125,50 +87,47 @@ Route::middleware('auth:sanctum')->group(function () {
             'currency'   => $currency,
         ]);
     });
-    Route::get('/dedications', [DedicationController::class, 'index']);
-    Route::post('/dedications/{dedication}/like', [DedicationController::class, 'like']);
+
+    // ❤️ Likes
+    Route::get('/me/likes',            [SongApiController::class, 'likedSongs']);
+    Route::post('/songs/{song}/like',  [SongApiController::class, 'likeSong']);
+    Route::delete('/songs/{song}/like',[SongApiController::class, 'unlikeSong']);
+
+    // ⬇️ Downloads (premium enforced inside controller)
+    Route::get('/songs/{song}/download', [SongApiController::class, 'download'])
+        ->name('songs.download');
+
+    // 🎶 Playlists (user-owned)
+    Route::get('/playlists',                [PlaylistController::class, 'index']);
+    Route::post('/playlists',               [PlaylistController::class, 'store']);
+    Route::get('/playlists/{playlist}',     [PlaylistController::class, 'show']);
+    Route::put('/playlists/{playlist}',     [PlaylistController::class, 'update']);
+    Route::delete('/playlists/{playlist}',  [PlaylistController::class, 'destroy']);
+    Route::post('/playlists/{playlist}/songs',        [PlaylistController::class, 'addSong']);
+    Route::delete('/playlists/{playlist}/songs/{song}', [PlaylistController::class, 'removeSong']);
+
+    // 🙏 Dedications (write)
+    Route::post('/dedications', [DedicationController::class, 'store']);
+    Route::get('/dedications',  [DedicationController::class, 'index']);
+    Route::post('/dedications/{dedication}/like',   [DedicationController::class, 'like']);
     Route::post('/dedications/{dedication}/unlike', [DedicationController::class, 'unlike']);
 
-    Route::get('/in-app-messages', [InAppMessageController::class, 'index']);
-    Route::post('/in-app-messages/{inAppMessage}/impression', [InAppMessageController::class, 'impression']);
-    Route::post('/in-app-messages/{inAppMessage}/click', [InAppMessageController::class, 'click']);
-    Route::post('/in-app-messages/{inAppMessage}/dismiss', [InAppMessageController::class, 'dismiss']);
+    // 🔍 User search
+    Route::get('/users/search', [\App\Http\Controllers\Api\UserSearchController::class, 'search']);
 
+    // 💳 Stripe (authenticated flows)
+    Route::post('/stripe/checkout',        [StripeController::class, 'createCheckoutSession']);
+    Route::post('/stripe/billing-portal',  [StripeController::class, 'createBillingPortal']);
+    Route::post('/stripe/confirm',         [StripeController::class, 'confirmAfterCheckout']);
+
+    // 🎤 Artist
     Route::post('artists/apply', [ArtistController::class, 'apply']);
-    Route::get('artists/me', [ArtistController::class, 'me']);
+    Route::get('artists/me',     [ArtistController::class, 'me']);
 
+    // 📤 Song upload
     Route::post('songs', [SongUploadController::class, 'store']);
 
-    Route::post('/admin/songs/{song}/approve', [\App\Http\Controllers\Admin\SongModerationController::class, 'approve']);
-    Route::post('/admin/songs/{song}/reject', [\App\Http\Controllers\Admin\SongModerationController::class, 'reject']);
-
+    // 🛠️ Admin song moderation
+    Route::post('/admin/songs/{song}/approve', [SongModerationController::class, 'approve']);
+    Route::post('/admin/songs/{song}/reject',  [SongModerationController::class, 'reject']);
 });
-
-// public
-
-Route::get('/songs/{song}/dedications', [DedicationController::class, 'bySong']);
-
-
-Route::post('/songs/{song}/played', [SongApiController::class, 'markPlayed']);
-
-Route::post('/forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail']);
-Route::post('/reset-password', [ForgotPasswordController::class, 'reset']);
-
-
-//Admin or global playlist api
-Route::get('/featured-playlists', [PlaylistController::class, 'featured']);
-Route::get('/playlists/by-type/{type}', [PlaylistController::class, 'byType']);
-
-//Admin genre
-Route::get('/genres', [GenreController::class, 'index']); // all
-Route::get('/genres/featured', [GenreController::class, 'featured']); // featured only
-
-
-
-
-
-
-
-
-
-
