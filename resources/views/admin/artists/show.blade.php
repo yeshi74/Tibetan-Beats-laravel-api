@@ -121,6 +121,68 @@
         </div> <!-- card-body -->
     </div> <!-- card -->
 
+    {{-- Documents / ID images --}}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Documents & ID Images</h5>
+        </div>
+        <div class="card-body">
+            @php
+                $meta = is_array($artist->meta) ? $artist->meta : (is_object($artist->meta) ? (array)$artist->meta : []);
+                $idFront = $meta['id_front'] ?? null;
+                $idBack = $meta['id_back'] ?? null;
+                // other possible keys: 'id_type', 'id_number', 'avatar', etc.
+                $avatar = $artist->profile_image ?? null;
+            @endphp
+
+            <div class="row">
+                <div class="col-md-4 text-center">
+                    <h6>Avatar</h6>
+                    @if($avatar)
+                        <a href="{{ asset('storage/' . ltrim($avatar, '/')) }}" target="_blank">
+                            <img src="{{ asset('storage/' . ltrim($avatar, '/')) }}" alt="Avatar" class="img-fluid rounded shadow-sm" style="max-height: 160px;">
+                        </a>
+                        <div class="mt-2"><a href="{{ asset('storage/' . ltrim($avatar, '/')) }}" target="_blank">Open avatar</a></div>
+                    @else
+                        <div class="text-muted">No avatar uploaded</div>
+                    @endif
+                </div>
+
+                <div class="col-md-4 text-center">
+                    <h6>ID - Front</h6>
+                    @if($idFront)
+                        <a href="{{ asset('storage/' . ltrim($idFront, '/')) }}" target="_blank" rel="noopener">
+                            <img src="{{ asset('storage/' . ltrim($idFront, '/')) }}" alt="ID Front" class="img-fluid rounded shadow-sm" style="max-height: 160px;">
+                        </a>
+                        <div class="mt-2"><a href="{{ asset('storage/' . ltrim($idFront, '/')) }}" target="_blank">Open full image</a></div>
+                    @else
+                        <div class="text-muted">No front ID uploaded</div>
+                    @endif
+                </div>
+
+                <div class="col-md-4 text-center">
+                    <h6>ID - Back</h6>
+                    @if($idBack)
+                        <a href="{{ asset('storage/' . ltrim($idBack, '/')) }}" target="_blank" rel="noopener">
+                            <img src="{{ asset('storage/' . ltrim($idBack, '/')) }}" alt="ID Back" class="img-fluid rounded shadow-sm" style="max-height: 160px;">
+                        </a>
+                        <div class="mt-2"><a href="{{ asset('storage/' . ltrim($idBack, '/')) }}" target="_blank">Open full image</a></div>
+                    @else
+                        <div class="text-muted">No back ID uploaded</div>
+                    @endif
+                </div>
+            </div>
+
+            {{-- Optional extra info if present --}}
+            <div class="mt-3">
+                @if(!empty($meta['id_type']) || !empty($meta['id_number']))
+                    <p><strong>ID type:</strong> {{ $meta['id_type'] ?? '—' }}</p>
+                    <p><strong>ID number:</strong> {{ $meta['id_number'] ?? '—' }}</p>
+                @endif
+            </div>
+        </div>
+    </div>
+
     {{-- Optional: show recent songs or uploads for this artist if you have relationship --}}
     @if(method_exists($artist, 'songs') && $artist->songs()->count() > 0)
         <div class="card mb-4">

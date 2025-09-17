@@ -12,35 +12,81 @@ use App\Models\Song;
 
 class ArtistController extends Controller
 {
-    public function apply(Request $request)
+    // app/Http/Controllers/Api/ArtistController.php (method apply)
+public function apply(Request $request)
 {
     $user = $request->user();
-    if (!$user) return response()->json(['success'=>false,'message'=>'Unauthorized'],401);
+    if (!$user) {
+        return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
+    }
 
+    // Validation: include file rules for ID front/back and optional avatar
     $v = Validator::make($request->all(), [
         'display_name' => 'required|string|max:255',
         'real_name' => 'nullable|string|max:255',
         'bio' => 'nullable|string|max:2000',
         'country' => 'nullable|string|max:100',
-        'profile_image' => 'nullable|string|max:255', // we expect server to store file separately and return path
+        'profile_image' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
+        'id_front' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
+        'id_back' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
         'social_links' => 'nullable|array',
     ]);
 
     if ($v->fails()) {
-        return response()->json(['success'=>false, 'errors'=>$v->errors()], 422);
+        \Log::warning('[ArtistController::apply] validation failed', ['errors' => $v->errors()->all()]);
+        return response()->json(['success' => false, 'errors' => $v->errors()], 422);
     }
 
+    // Build base data
     $data = [
         'display_name' => $request->input('display_name'),
         'real_name' => $request->input('real_name'),
         'country' => $request->input('country'),
+        // leave profile_image as string path if sent as a path; we also accept upload below
         'profile_image' => $request->input('profile_image'),
-        'meta' => array_filter([
-            'bio' => $request->input('bio'),
-        ]),
         'social_links' => $request->input('social_links') ? $request->input('social_links') : null,
     ];
 
+    // meta starts with bio if present
+    $meta = array_filter([
+        'bio' => $request->input('bio'),
+    ]);
+
+    // handle uploaded profile image (avatar)
+    if ($request->hasFile('profile_image')) {
+        try {
+            $pf = $request->file('profile_image');
+            $path = $pf->store('artists/avatars', 'public');
+            $data['profile_image'] = $path;
+        } catch (\Throwable $e) {
+            \Log::warning('[ArtistController::apply] profile image store failed: ' . $e->getMessage());
+        }
+    }
+
+    // handle ID front/back uploads
+    if ($request->hasFile('id_front')) {
+        try {
+            $f = $request->file('id_front');
+            $p = $f->store('artists/ids', 'public');
+            $meta['id_front'] = $p;
+        } catch (\Throwable $e) {
+            \Log::warning('[ArtistController::apply] id_front store failed: ' . $e->getMessage());
+        }
+    }
+    if ($request->hasFile('id_back')) {
+        try {
+            $f = $request->file('id_back');
+            $p = $f->store('artists/ids', 'public');
+            $meta['id_back'] = $p;
+        } catch (\Throwable $e) {
+            \Log::warning('[ArtistController::apply] id_back store failed: ' . $e->getMessage());
+        }
+    }
+
+    // Merge meta (keep other meta values if updating)
+    $data['meta'] = array_merge($meta, $request->input('meta') ? (array)$request->input('meta') : []);
+
+    // Create or update the artist record for this user (unverified by default)
     $artist = Artist::updateOrCreate(
         ['user_id' => $user->id],
         array_merge($data, ['verified' => 0])
@@ -51,6 +97,7 @@ class ArtistController extends Controller
         'data' => $artist
     ], 201);
 }
+
 
 
 public function me(Request $request)
