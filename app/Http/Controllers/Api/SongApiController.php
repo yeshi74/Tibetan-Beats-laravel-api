@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use App\Models\Song;
@@ -297,28 +298,52 @@ class SongApiController extends Controller
     /**
      * GET /api/songs/search?q=
      */
-    public function search(Request $request)
-    {
-        $query = (string) $request->input('q', '');
-        $user  = $this->resolveUser($request);
+public function search(Request $request)
+{
+    // accept either 'q' or 'query' for compatibility
+    $raw = $request->input('q', $request->input('query', ''));
+    $query = trim((string) $raw);
 
-        $likedIds = $user
-            ? DB::table('liked_songs')->where('user_id', $user->id)->pluck('song_id')->toArray()
-            : [];
-
-        $songs = $this->visibilityQuery(
-                Song::where(function ($q) use ($query) {
-                    $q->where('title', 'like', "%{$query}%")
-                      ->orWhere('artist', 'like', "%{$query}%");
-                }),
-                $user
-            )
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(fn ($s) => $this->transformSong($request, $s, $likedIds));
-
-        return response()->json(['status' => 'success', 'data' => $songs]);
+    // Return an empty set for empty queries (avoid returning all songs accidentally)
+    if ($query === '') {
+        return response()->json(['status' => 'success', 'data' => []]);
     }
+
+    $user = $this->resolveUser($request);
+
+    $likedIds = $user
+        ? DB::table('liked_songs')->where('user_id', $user->id)->pluck('song_id')->toArray()
+        : [];
+
+    // which columns exist?
+    $hasAlbum = Schema::hasColumn('songs', 'album');
+
+    $words = preg_split('/\s+/', $query, -1, PREG_SPLIT_NO_EMPTY);
+
+    $base = Song::query();
+
+    $base->where(function ($q) use ($words, $hasAlbum) {
+        foreach ($words as $word) {
+            $pattern = '%' . strtolower($word) . '%';
+            $q->where(function ($sub) use ($pattern, $hasAlbum) {
+                $sub->whereRaw('LOWER(title) LIKE ?', [$pattern])
+                    ->orWhereRaw('LOWER(artist) LIKE ?', [$pattern]);
+
+                if ($hasAlbum) {
+                    $sub->orWhereRaw('LOWER(album) LIKE ?', [$pattern]);
+                }
+            });
+        }
+    });
+
+    $songs = $this->visibilityQuery($base, $user)
+        ->orderBy('created_at', 'desc')
+        ->get()
+        ->map(fn ($s) => $this->transformSong($request, $s, $likedIds));
+
+    return response()->json(['status' => 'success', 'data' => $songs]);
+}
+
 
     /**
      * GET /api/songs/{id}
