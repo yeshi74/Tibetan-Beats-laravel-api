@@ -139,6 +139,14 @@ class StripeController extends Controller
             $sub = $session->subscription;
             $isActive = $sub && isset($sub->status) && in_array($sub->status, ['active','trialing'], true);
 
+            Log::info('[PremiumTrace][StripeConfirm] session resolved', [
+                'user_id' => $user->id,
+                'session_id' => $session->id ?? null,
+                'subscription_status' => $sub->status ?? null,
+                'before_is_premium' => (bool) $user->is_premium,
+                'before_is_premium_raw' => $user->getRawOriginal('is_premium'),
+            ]);
+
             if ($isActive) {
                 if (!empty($session->customer)) {
                     $user->stripe_customer_id = $session->customer;
@@ -149,6 +157,14 @@ class StripeController extends Controller
                 $user->is_premium = 1;
                 $user->save();
             }
+
+            $user->refresh();
+            Log::info('[PremiumTrace][StripeConfirm] returning premium state', [
+                'user_id' => $user->id,
+                'is_active' => (bool) $isActive,
+                'after_is_premium' => (bool) $user->is_premium,
+                'after_is_premium_raw' => $user->getRawOriginal('is_premium'),
+            ]);
 
             return response()->json([
                 'ok'         => true,
@@ -194,6 +210,13 @@ class StripeController extends Controller
                 }
 
                 if ($user) {
+                    Log::info('[PremiumTrace][StripeWebhook] checkout before sync', [
+                        'user_id' => $user->id,
+                        'type' => $type,
+                        'before_is_premium' => (bool) $user->is_premium,
+                        'before_is_premium_raw' => $user->getRawOriginal('is_premium'),
+                    ]);
+
                     $user->is_premium = 1;
                     if (!empty($session->customer)) {
                         $user->stripe_customer_id = $session->customer;
@@ -202,7 +225,13 @@ class StripeController extends Controller
                         $user->stripe_subscription_id = $session->subscription;
                     }
                     $user->save();
-                    Log::info('[Stripe] User upgraded to premium via webhook', ['user_id' => $user->id]);
+                    $user->refresh();
+                    Log::info('[PremiumTrace][StripeWebhook] checkout after sync', [
+                        'user_id' => $user->id,
+                        'type' => $type,
+                        'after_is_premium' => (bool) $user->is_premium,
+                        'after_is_premium_raw' => $user->getRawOriginal('is_premium'),
+                    ]);
                 }
                 break;
             }
@@ -217,12 +246,24 @@ class StripeController extends Controller
                 if ($user) {
                     $active = ($type === 'customer.subscription.updated') &&
                               in_array($status, ['active', 'trialing'], true);
+                    Log::info('[PremiumTrace][StripeWebhook] subscription before sync', [
+                        'user_id' => $user->id,
+                        'type' => $type,
+                        'status' => $status,
+                        'active' => $active,
+                        'before_is_premium' => (bool) $user->is_premium,
+                        'before_is_premium_raw' => $user->getRawOriginal('is_premium'),
+                    ]);
+
                     $user->is_premium = $active ? 1 : 0;
                     $user->stripe_subscription_id = $sub->id ?? $user->stripe_subscription_id;
                     $user->save();
-                    Log::info('[Stripe] Subscription sync', [
+                    $user->refresh();
+                    Log::info('[PremiumTrace][StripeWebhook] subscription after sync', [
                         'user_id' => $user->id,
                         'status'  => $status,
+                        'after_is_premium' => (bool) $user->is_premium,
+                        'after_is_premium_raw' => $user->getRawOriginal('is_premium'),
                     ]);
                 }
                 break;

@@ -40,6 +40,8 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'is_premium' => 'boolean',
+        'premium_ends_at' => 'datetime',
+        'premium_expires_at' => 'datetime',
         // 'password' => 'hashed', // if you use this feature, make sure framework supports it
     ];
 

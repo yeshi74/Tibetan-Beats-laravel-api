@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\GenreController;
 use App\Http\Controllers\Api\InAppMessageController;
 use App\Http\Controllers\Api\SongUploadController;
 use App\Http\Controllers\Api\ArtistController;
+use App\Http\Controllers\Api\RevenueCatWebhookController;
 use App\Http\Controllers\Admin\SongModerationController;
 
 /* -------------------- Public (no auth) -------------------- */
@@ -39,6 +40,7 @@ Route::post('/login',    [AuthController::class, 'login']);
 
 // Stripe webhook (public)
 Route::post('/stripe/webhook', [StripeController::class, 'webhook']);
+Route::post('/revenuecat/webhook', [RevenueCatWebhookController::class, 'handle']);
 
 // Password reset
 Route::post('/forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail']);
@@ -68,6 +70,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // convenience /me payload
     Route::get('/me', function (Request $request) {
         $u = $request->user();
+        $u->refresh();
         $country = 'IN';
         $currency = 'INR';
         try {
@@ -78,11 +81,21 @@ Route::middleware('auth:sanctum')->group(function () {
             \Log::warning('[/me] geoip failed: ' . $e->getMessage());
         }
 
+        \Log::info('[PremiumTrace][/api/me] returning DB premium state', [
+            'user_id' => $u->id,
+            'is_premium_raw' => $u->getRawOriginal('is_premium'),
+            'is_premium_cast' => (bool) $u->is_premium,
+            'premium_ends_at' => optional($u->premium_ends_at)->toIso8601String(),
+            'source_of_truth' => 'users.is_premium',
+        ]);
+
         return response()->json([
             'id'         => $u->id,
             'name'       => $u->name,
             'email'      => $u->email,
             'is_premium' => (bool) $u->is_premium,
+            'premium_ends_at' => optional($u->premium_ends_at)->toIso8601String(),
+            'premium_source' => 'users.is_premium',
             'country'    => $country,
             'currency'   => $currency,
         ]);

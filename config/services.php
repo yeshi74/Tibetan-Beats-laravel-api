@@ -43,4 +43,8 @@ return [
         'price_monthly_usd' => env('STRIPE_PRICE_MONTHLY_USD'),
         'price_yearly_usd'  => env('STRIPE_PRICE_YEARLY_USD'),
     ],
+
+    'revenuecat' => [
+        'webhook_token' => env('REVENUECAT_WEBHOOK_TOKEN'),
+    ],
 ];
