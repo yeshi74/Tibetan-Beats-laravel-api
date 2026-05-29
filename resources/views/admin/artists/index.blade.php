@@ -17,11 +17,11 @@
             <tr>
                 <th>ID</th>
                 <th>User</th>
+                <th>Avatar</th>
                 <th>Display Name</th>
-                <th>Bio</th>
                 <th>Status</th>
                 <th>Applied At</th>
-                <th width="200">Actions</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -36,8 +36,19 @@
                             <span class="text-muted">[deleted user]</span>
                         @endif
                     </td>
+                    <td>
+                        @if($artist->profile_image)
+                            <img
+                                src="{{ asset('storage/'.$artist->profile_image) }}"
+                                width="60"
+                                height="60"
+                                style="object-fit:cover;border-radius:50%;">
+                        @else
+                            -
+                        @endif
+                        </td>
                     <td>{{ $artist->display_name }}</td>
-                    <td>{{ $artist->meta['bio'] ?? '-' }}</td>
+                    
                     <td>
                         @if($artist->verified)
                             <span class="badge bg-success">Approved</span>
@@ -47,15 +58,35 @@
                     </td>
                     <td>{{ $artist->created_at->format('d M Y') }}</td>
                     <td>
-                        @if(!$artist->verified)
-                            <form method="POST" action="{{ route('admin.artists.approve', $artist->id) }}" class="d-inline">
-                                @csrf @method('PATCH')
-                                <button type="submit" class="btn btn-sm btn-success">Approve</button>
-                            </form>
-                            <form method="POST" action="{{ route('admin.artists.reject', $artist->id) }}" class="d-inline">
-                                @csrf @method('PATCH')
-                                <button type="submit" class="btn btn-sm btn-danger">Reject</button>
-                            </form>
+                        <a href="{{ route('admin.artists.show', $artist->id) }}"
+   class="btn btn-primary btn-sm mb-1">
+    Review
+</a>
+
+@if(!$artist->verified)
+    <form method="POST"
+          action="{{ route('admin.artists.approve', $artist->id) }}"
+          class="d-inline">
+        @csrf
+        @method('PATCH')
+
+        <button type="submit"
+                class="btn btn-success btn-sm">
+            Approve
+        </button>
+    </form>
+
+    <form method="POST"
+          action="{{ route('admin.artists.reject', $artist->id) }}"
+          class="d-inline">
+        @csrf
+        @method('PATCH')
+
+        <button type="submit"
+                class="btn btn-danger btn-sm">
+            Reject
+        </button>
+    </form>
                         @else
                             <form method="POST" action="{{ route('admin.artists.reject', $artist->id) }}" class="d-inline">
                                 @csrf @method('PATCH')

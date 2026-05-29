@@ -29,9 +29,8 @@ class ArtistAdminController extends Controller
     }
 
     // GET /admin/artists/{artist}
-    public function show(Artist $artist)
+    public function show(\App\Models\Artist $artist)
     {
-        $artist->load('user');
         return view('admin.artists.show', compact('artist'));
     }
 

@@ -30,6 +30,7 @@ public function apply(Request $request)
         'id_front' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
         'id_back' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
         'social_links' => 'nullable|array',
+        'sample_track' => 'nullable|mimes:mp3,wav,m4a|max:20480',
     ]);
 
     if ($v->fails()) {
@@ -80,6 +81,25 @@ public function apply(Request $request)
             $meta['id_back'] = $p;
         } catch (\Throwable $e) {
             \Log::warning('[ArtistController::apply] id_back store failed: ' . $e->getMessage());
+        }
+    }
+
+    if ($request->hasFile('sample_track')) {
+        try {
+            $track = $request->file('sample_track');
+
+            $path = $track->store(
+                'artists/sample_tracks',
+                'public'
+            );
+
+            $meta['sample_track'] = $path;
+
+        } catch (\Throwable $e) {
+            \Log::warning(
+                '[ArtistController::apply] sample_track store failed: '
+                . $e->getMessage()
+            );
         }
     }
 
