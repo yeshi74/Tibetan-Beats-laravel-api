@@ -9,7 +9,8 @@ use App\Models\User;
 
 class AuthController extends Controller
 {
-    public function register(Request $req) {
+    public function register(Request $req)
+    {
         $req->validate([
             'name'     => 'required|string',
             'email'    => 'required|email|unique:users',
@@ -23,8 +24,11 @@ class AuthController extends Controller
             'is_admin' => 0,
         ]);
 
-        // 🔹 Send verification email
-        $user->sendEmailVerificationNotification();
+        try {
+            $user->sendEmailVerificationNotification();
+        } catch (\Throwable $e) {
+            \Log::error('Verification email failed: '.$e->getMessage());
+        }
 
         return response()->json([
             'message' => 'Registered successfully. Please verify your email before logging in.',
