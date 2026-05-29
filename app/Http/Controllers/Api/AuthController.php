@@ -6,22 +6,27 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
+use App\Models\Role;
 
 class AuthController extends Controller
 {
     public function register(Request $req)
     {
+
         $req->validate([
             'name'     => 'required|string',
             'email'    => 'required|email|unique:users',
             'password' => 'required|string|confirmed'
         ]);
 
+        $role = Role::where('name', 'user')->first();
+
         $user = User::create([
             'name'     => $req->name,
             'email'    => $req->email,
             'password' => Hash::make($req->password),
             'is_admin' => 0,
+            'role_id'  => $role?->id,
         ]);
 
         try {
