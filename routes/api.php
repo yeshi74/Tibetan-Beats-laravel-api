@@ -141,6 +141,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('songs', [SongUploadController::class, 'store']);
 
     // 🛠️ Admin song moderation
-    Route::post('/admin/songs/{song}/approve', [SongModerationController::class, 'approve']);
-    Route::post('/admin/songs/{song}/reject',  [SongModerationController::class, 'reject']);
+    Route::middleware('is_admin')->group(function () {
+        Route::post('/admin/songs/{song}/approve', [SongModerationController::class, 'approve']);
+        Route::post('/admin/songs/{song}/reject',  [SongModerationController::class, 'reject']);
+    });
 });
