@@ -147,6 +147,7 @@ public function me(Request $request)
             'id' => $s->id,
             'title' => $s->title,
             'status' => $s->status,
+            'play_count' => (int) ($s->play_count ?? 0),
             'cover_image_url' => $s->cover_image ? url('storage/' . ltrim($s->cover_image, '/')) : null,
             'file_path' => $s->file_path,
             'audio_url' => url('/api/songs/stream/' . $s->id),
@@ -173,6 +174,42 @@ public function me(Request $request)
         ],
     ]);
 }
+
+
+    public function show(Artist $artist)
+    {
+        $songs = Song::where('artist_id', $artist->id)
+            ->where('status', 'published')
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(function ($s) {
+                return [
+                    'id' => $s->id,
+                    'title' => $s->title,
+                    'cover_image_url' => $s->cover_image
+                        ? url('storage/' . ltrim($s->cover_image, '/'))
+                        : null,
+                    'audio_url' => url('/api/songs/stream/' . $s->id),
+                    'play_count' => $s->play_count ?? 0,
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'artist' => [
+                'id' => $artist->id,
+                'display_name' => $artist->display_name,
+                'real_name' => $artist->real_name,
+                'country' => $artist->country,
+                'verified' => (bool) $artist->verified,
+                'profile_image' => $artist->profile_image
+                    ? url('storage/' . ltrim($artist->profile_image, '/'))
+                    : null,
+                'bio' => $artist->meta['bio'] ?? '',
+            ],
+            'songs' => $songs,
+        ]);
+    }
 
 
 }

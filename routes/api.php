@@ -145,4 +145,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/admin/songs/{song}/approve', [SongModerationController::class, 'approve']);
         Route::post('/admin/songs/{song}/reject',  [SongModerationController::class, 'reject']);
     });
+
+    // Artist public view
+Route::get('/artists/{artist}', [ArtistController::class, 'show']);
 });

@@ -58,6 +58,7 @@ class SongApiController extends Controller
             'id'              => $song->id,
             'title'           => $song->title,
             'artist'          => $song->artist,
+            'artist_id'       => $song->artist_id,
             'genre_id'        => $song->genre_id,
             'genre'           => $song->genre ? $song->genre->name : null,
             'audio_url'       => $baseUrl . '/api/songs/stream/' . $song->id,
@@ -116,6 +117,7 @@ class SongApiController extends Controller
                     'id'              => $song->id,
                     'title'           => $song->title,
                     'artist'          => $song->artist,
+                    'artist_id'       => $song->artist_id,
                     'genre_id'        => $song->genre_id,
                     'genre'           => $song->genre ? $song->genre->name : null,
                     'audio_url'       => $request->getSchemeAndHttpHost() . '/api/songs/stream/' . $song->id,
@@ -145,11 +147,11 @@ class SongApiController extends Controller
         }
 
         // non-fatal increment of play_count
-        try {
-            $song->increment('play_count');
-        } catch (\Throwable $e) {
-            Log::warning("[SongApiController::stream] increment failed: {$song->id} :: ".$e->getMessage());
-        }
+        // try {
+        //     $song->increment('play_count');
+        // } catch (\Throwable $e) {
+        //     Log::warning("[SongApiController::stream] increment failed: {$song->id} :: ".$e->getMessage());
+        // }
 
         if ($request->query('debug') === '1') {
             return response()->json([
@@ -357,9 +359,9 @@ public function search(Request $request)
             return response()->json(['message' => 'Not Found'], 404);
         }
 
-        try { $song->increment('play_count'); } catch (\Throwable $e) {
-            Log::warning('[Show] play_count increment failed: '.$e->getMessage());
-        }
+        // try { $song->increment('play_count'); } catch (\Throwable $e) {
+        //     Log::warning('[Show] play_count increment failed: '.$e->getMessage());
+        // }
 
         $likedIds = $user
             ? DB::table('liked_songs')->where('user_id', $user->id)->pluck('song_id')->toArray()
