@@ -321,5 +321,75 @@ public function me(Request $request)
         ]);
     }
 
+    public function profile(Request $request)
+    {
+        $artist = Artist::where(
+            'user_id',
+            $request->user()->id
+        )->firstOrFail();
+
+        return response()->json([
+            'display_name' => $artist->display_name,
+            'country' => $artist->country,
+            'bio' => $artist->meta['bio'] ?? '',
+            'profile_image' => $artist->profile_image
+                ? url('storage/' . $artist->profile_image)
+                : null,
+        ]);
+    }
+
+    public function updateProfile(Request $request)
+    {
+        $artist = Artist::where(
+            'user_id',
+            $request->user()->id
+        )->firstOrFail();
+
+        $request->validate([
+            'display_name' => 'required|string|max:255',
+            'country' => 'nullable|string|max:255',
+            'bio' => 'nullable|string|max:2000',
+            'profile_image' => 'nullable|image|max:5120',
+        ]);
+
+        $artist->display_name =
+            $request->display_name;
+
+        $artist->country =
+            $request->country;
+
+        $meta = $artist->meta ?? [];
+
+        $meta['bio'] =
+            $request->bio;
+
+        $artist->meta = $meta;
+
+        if ($request->hasFile('profile_image')) {
+
+            if ($artist->profile_image) {
+                \Storage::disk('public')
+                    ->delete(
+                        $artist->profile_image
+                    );
+            }
+
+            $artist->profile_image =
+                $request->file(
+                    'profile_image'
+                )->store(
+                    'artists/avatars',
+                    'public'
+                );
+        }
+
+        $artist->save();
+
+        return response()->json([
+            'message' =>
+                'Artist profile updated',
+        ]);
+    }
+
 
 }

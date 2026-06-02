@@ -150,6 +150,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/artist/songs/{song}', [ArtistController::class, 'deleteSong']);
     Route::post('/artist/songs/{song}', [ArtistController::class, 'updateSong']);
 
+    Route::get('/artist/profile',[ArtistController::class, 'profile']);
+
+    Route::post('/artist/profile',[ArtistController::class, 'updateProfile']);
+
+    Route::get('/me/recently-played',[SongApiController::class,'recentlyPlayed']);
+
     
 
     // Artist public view

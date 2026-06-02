@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use App\Models\Song;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use App\Models\RecentlyPlayed;
 
 class SongApiController extends Controller
 {
@@ -279,10 +280,35 @@ class SongApiController extends Controller
     /**
      * Increment lightweight play counter (non-fatal)
      */
-    public function markPlayed(Song $song)
+    public function markPlayed(Request $request,Song $song)
     {
+
         $song->increment('play_count');
-        return response()->json(['status' => 'ok', 'play_count' => $song->play_count]);
+
+        $user = $this->resolveUser($request);
+
+        \Log::info('MARK PLAYED USER', [
+    'user_id' => $user?->id,
+    'song_id' => $song->id,
+]);
+        
+
+        if ($user) {
+            RecentlyPlayed::updateOrCreate(
+                [
+                    'user_id' => $user->id,
+                    'song_id' => $song->id,
+                ],
+                [
+                    'updated_at' => now(),
+                ]
+            );
+        }
+
+        return response()->json([
+            'status' => 'ok',
+            'play_count' => $song->play_count,
+        ]);
     }
 
     public function incrementPlayCount($id)
@@ -643,4 +669,31 @@ public function search(Request $request)
             ]
         );
     }
+
+
+
+
+    public function recentlyPlayed(Request $request)
+    {
+        $user = $request->user();
+
+        if (!$user) {
+            return response()->json([]);
+        }
+
+        $songs = RecentlyPlayed::where('user_id',$user->id)
+            ->latest('updated_at')
+            ->take(20)
+            ->with('song')
+            ->get()
+            ->pluck('song')
+            ->filter()
+            ->values();
+
+        return response()->json([
+            'songs' => $songs,
+        ]);
+    }
+
+
 }
