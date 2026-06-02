@@ -254,11 +254,7 @@ public function me(Request $request)
     public function updateSong(Request $request, Song $song)
     {
 
-          \Log::info('updateSong called', [
-    'user_id' => auth()->id(),
-    'song_id' => $song->id,
-    'artist' => auth()->user()->artist?->id,
-]);
+          
         $artist = auth()->user()->artist;
 
 
