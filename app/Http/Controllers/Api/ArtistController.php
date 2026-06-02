@@ -218,12 +218,33 @@ public function me(Request $request)
 
         $songs = Song::where('artist_id', $artist->id);
 
+        $topSongs = Song::where('artist_id', $artist->id)
+            ->orderByDesc('play_count')
+            ->take(5)
+            ->get([
+                'id',
+                'title',
+                'play_count',
+            ]);
+
         return response()->json([
+            'artist' => [
+                'id' => $artist->id,
+                'display_name' => $artist->display_name ?: auth()->user()->name,
+                'verified' => (bool) $artist->verified,
+                'profile_image' => $artist->profile_image
+                    ? url('storage/' . ltrim($artist->profile_image, '/'))
+                    : null,
+            ],
+
             'total_songs' => $songs->count(),
-            'total_plays' => $songs->sum('play_count'),
-            'top_song' => $songs
+            'total_plays' => (int) $songs->sum('play_count'),
+
+            'top_song' => Song::where('artist_id', $artist->id)
                 ->orderByDesc('play_count')
                 ->first(),
+
+            'top_songs' => $topSongs,
         ]);
     }
 
