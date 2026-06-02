@@ -146,6 +146,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/admin/songs/{song}/reject',  [SongModerationController::class, 'reject']);
     });
 
+    Route::get('/artist/dashboard',[ArtistController::class, 'dashboard']);
+    Route::delete('/artist/songs/{song}', [ArtistController::class, 'deleteSong']);
+    Route::post('/artist/songs/{song}', [ArtistController::class, 'updateSong']);
+
+    
+
     // Artist public view
 Route::get('/artists/{artist}', [ArtistController::class, 'show']);
 });

@@ -147,6 +147,7 @@ public function me(Request $request)
             'id' => $s->id,
             'title' => $s->title,
             'status' => $s->status,
+            'genre_id' => $s->genre_id,
             'play_count' => (int) ($s->play_count ?? 0),
             'cover_image_url' => $s->cover_image ? url('storage/' . ltrim($s->cover_image, '/')) : null,
             'file_path' => $s->file_path,
@@ -208,6 +209,98 @@ public function me(Request $request)
                 'bio' => $artist->meta['bio'] ?? '',
             ],
             'songs' => $songs,
+        ]);
+    }
+
+    public function dashboard()
+    {
+        $artist = auth()->user()->artist;
+
+        $songs = Song::where('artist_id', $artist->id);
+
+        return response()->json([
+            'total_songs' => $songs->count(),
+            'total_plays' => $songs->sum('play_count'),
+            'top_song' => $songs
+                ->orderByDesc('play_count')
+                ->first(),
+        ]);
+    }
+
+    public function deleteSong(Song $song)
+    {
+        $artist = auth()->user()->artist;
+
+        if (!$artist) {
+            return response()->json([
+                'message' => 'Artist not found'
+            ], 404);
+        }
+
+        if ($song->artist_id !== $artist->id) {
+            return response()->json([
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+
+        $song->delete();
+
+        return response()->json([
+            'message' => 'Song deleted successfully'
+        ]);
+    }
+
+
+    public function updateSong(Request $request, Song $song)
+    {
+
+          \Log::info('updateSong called', [
+    'user_id' => auth()->id(),
+    'song_id' => $song->id,
+    'artist' => auth()->user()->artist?->id,
+]);
+        $artist = auth()->user()->artist;
+
+
+
+        if (!$artist) {
+            return response()->json([
+                'message' => 'Artist not found'
+            ], 404);
+        }
+
+        if ($song->artist_id !== $artist->id) {
+            return response()->json([
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'genre_id' => 'required|exists:genres,id',
+            'cover_image' => 'nullable|image|max:2048',
+        ]);
+
+        $song->title = $request->title;
+        $song->genre_id = $request->genre_id;
+
+        if ($request->hasFile('cover_image')) {
+
+            if ($song->cover_image) {
+                Storage::disk('public')
+                    ->delete($song->cover_image);
+            }
+
+            $song->cover_image =
+                $request->file('cover_image')
+                    ->store('covers', 'public');
+        }
+
+        $song->save();
+
+        return response()->json([
+            'message' => 'Song updated successfully',
+            'song' => $song->fresh(),
         ]);
     }
 

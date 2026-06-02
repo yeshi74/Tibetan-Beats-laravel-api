@@ -128,4 +128,10 @@ class User extends Authenticatable
 
         return asset('storage/' . ltrim($val, '/'));
     }
+
+    public function artist()
+    {
+        return $this->hasOne(\App\Models\Artist::class,'user_id','id');
+    }
+
 }
