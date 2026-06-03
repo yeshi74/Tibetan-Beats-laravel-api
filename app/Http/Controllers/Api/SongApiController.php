@@ -695,5 +695,32 @@ public function search(Request $request)
         ]);
     }
 
+    public function newReleases(Request $request)
+    {
+        $user = $this->resolveUser($request);
+
+        $likedIds = $user
+            ? DB::table('liked_songs')
+                ->where('user_id', $user->id)
+                ->pluck('song_id')
+                ->toArray()
+            : [];
+
+        $songs = Song::where('status', 'published')
+            ->latest('created_at')
+            ->take(15)
+            ->get()
+            ->map(fn ($s) => $this->transformSong(
+                $request,
+                $s,
+                $likedIds
+            ));
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $songs,
+        ]);
+    }
+
 
 }

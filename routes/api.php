@@ -31,6 +31,9 @@ Route::get('/songs/search', [SongApiController::class, 'search']);
 Route::get('/songs', [SongApiController::class, 'index']);
 Route::get('/songs/most-played', [SongApiController::class, 'mostPlayed']);
 Route::get('/songs/most-liked', [SongApiController::class, 'mostLiked']);
+
+Route::get('/songs/new-releases',[SongApiController::class, 'newReleases']);
+
 Route::get('/songs/{id}', [SongApiController::class, 'show']);
 Route::get('/songs/stream/{id}', [SongApiController::class, 'stream']); // stream url
 Route::post('/songs/{song}/played', [SongApiController::class, 'markPlayed']);
@@ -102,6 +105,7 @@ Route::middleware('auth:sanctum')->group(function () {
         ]);
     });
 
+
     // ❤️ Likes
     Route::get('/me/likes',            [SongApiController::class, 'likedSongs']);
     Route::post('/songs/{song}/like',  [SongApiController::class, 'likeSong']);
@@ -162,6 +166,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/artists/{artist}/follow',[ArtistFollowController::class, 'unfollow']);
 
     Route::get('/artists/popular',[ArtistController::class, 'popular']);
+
 
     
 
