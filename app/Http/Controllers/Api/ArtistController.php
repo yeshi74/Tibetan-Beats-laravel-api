@@ -185,6 +185,8 @@ public function me(Request $request)
 
         $followersCount = $artist->followers()->count();
 
+        $isOwnProfile = $artist->user_id === $user->id;
+
         $isFollowing = ArtistFollower::where(
             'user_id',
             $user->id
@@ -227,6 +229,7 @@ public function me(Request $request)
                 'bio' => $artist->meta['bio'] ?? '',
                 'followers_count' => $followersCount,
                 'is_following' => $isFollowing,
+                'is_own_profile' => $isOwnProfile,
             ],
             'songs' => $songs,
         ]);

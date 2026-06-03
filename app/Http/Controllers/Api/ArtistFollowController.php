@@ -13,6 +13,12 @@ class ArtistFollowController extends Controller
     {
         $user = $request->user();
 
+        if ($artist->user_id === $user->id) {
+            return response()->json([
+                'message' => 'You cannot follow yourself',
+            ], 422);
+        }
+
         ArtistFollower::firstOrCreate([
             'user_id' => $user->id,
             'artist_id' => $artist->id,
