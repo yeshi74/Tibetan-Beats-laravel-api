@@ -161,6 +161,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::delete('/artists/{artist}/follow',[ArtistFollowController::class, 'unfollow']);
 
+    Route::get('/artists/popular',[ArtistController::class, 'popular']);
+
     
 
     // Artist public view
