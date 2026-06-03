@@ -134,4 +134,13 @@ class User extends Authenticatable
         return $this->hasOne(\App\Models\Artist::class,'user_id','id');
     }
 
+    public function followedArtists()
+    {
+        return $this->hasMany(
+            ArtistFollower::class,
+            'user_id'
+        );
+    }
+
+
 }

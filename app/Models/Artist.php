@@ -47,4 +47,10 @@ class Artist extends Model
     {
         return $this->display_name ?? ($this->real_name ?? ($this->user->name ?? null));
     }
+
+    public function followers()
+    {
+        return $this->hasMany(ArtistFollower::class,'artist_id');
+    }
+
 }

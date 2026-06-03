@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\SongUploadController;
 use App\Http\Controllers\Api\ArtistController;
 use App\Http\Controllers\Api\RevenueCatWebhookController;
 use App\Http\Controllers\Admin\SongModerationController;
+use App\Http\Controllers\Api\ArtistFollowController;
 
 /* -------------------- Public (no auth) -------------------- */
 
@@ -155,6 +156,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/artist/profile',[ArtistController::class, 'updateProfile']);
 
     Route::get('/me/recently-played',[SongApiController::class,'recentlyPlayed']);
+
+    Route::post('/artists/{artist}/follow',[ArtistFollowController::class, 'follow']);
+
+    Route::delete('/artists/{artist}/follow',[ArtistFollowController::class, 'unfollow']);
 
     
 

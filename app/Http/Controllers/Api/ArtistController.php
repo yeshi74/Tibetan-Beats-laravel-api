@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use App\Models\Artist;
 use App\Models\Song;
+use App\Models\ArtistFollower;
 
 class ArtistController extends Controller
 {
@@ -177,8 +178,23 @@ public function me(Request $request)
 }
 
 
-    public function show(Artist $artist)
+    public function show(Request $request, Artist $artist)
     {
+
+        $user = $request->user();
+
+        $followersCount = $artist->followers()->count();
+
+        $isFollowing = ArtistFollower::where(
+            'user_id',
+            $user->id
+        )
+        ->where(
+            'artist_id',
+            $artist->id
+        )
+        ->exists();
+
         $songs = Song::where('artist_id', $artist->id)
             ->where('status', 'published')
             ->orderByDesc('created_at')
@@ -195,6 +211,8 @@ public function me(Request $request)
                 ];
             });
 
+            $followersCount = $artist->followers()->count();
+
         return response()->json([
             'success' => true,
             'artist' => [
@@ -207,6 +225,8 @@ public function me(Request $request)
                     ? url('storage/' . ltrim($artist->profile_image, '/'))
                     : null,
                 'bio' => $artist->meta['bio'] ?? '',
+                'followers_count' => $followersCount,
+                'is_following' => $isFollowing,
             ],
             'songs' => $songs,
         ]);
