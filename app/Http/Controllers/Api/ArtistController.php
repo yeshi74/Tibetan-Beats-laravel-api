@@ -241,6 +241,8 @@ public function me(Request $request)
 
         $songs = Song::where('artist_id', $artist->id);
 
+        $followersCount = $artist->followers()->count();
+
         $topSongs = Song::where('artist_id', $artist->id)
             ->orderByDesc('play_count')
             ->take(5)
@@ -268,6 +270,7 @@ public function me(Request $request)
                 ->first(),
 
             'top_songs' => $topSongs,
+            'followers_count' => $followersCount,
         ]);
     }
 
