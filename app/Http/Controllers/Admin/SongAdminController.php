@@ -9,6 +9,8 @@ use App\Models\Album;
 use App\Models\Genre;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use App\Models\Artist;
+use App\Models\Notification;
 
 class SongAdminController extends Controller
 {
@@ -150,9 +152,44 @@ class SongAdminController extends Controller
     public function approve(Song $song)
     {
         $song->status = 'published';
+
+        if (\Schema::hasColumn('songs', 'is_published')) {
+            $song->is_published = true;
+        }
+
         $song->save();
 
-        return redirect()->back()->with('success', "✅ '{$song->title}' approved and published.");
+        $artist = Artist::find($song->artist_id);
+
+        if ($artist) {
+            foreach ($artist->followers as $follower) {
+                Notification::create([
+                    'user_id' => $follower->user_id,
+
+                    'title' =>
+                        $artist->display_name .
+                        ' released a new song',
+
+                    'body' => $song->title,
+
+                    'type' => 'artist_song',
+
+                    'data' => [
+                        'song_id' => $song->id,
+                        'artist_id' => $artist->id,
+                    ],
+
+                    'is_read' => false,
+                ]);
+            }
+        }
+
+        return redirect()
+            ->back()
+            ->with(
+                'success',
+                "✅ '{$song->title}' approved and published."
+            );
     }
 
     public function reject(Song $song)

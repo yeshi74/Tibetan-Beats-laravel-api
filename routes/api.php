@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\ArtistController;
 use App\Http\Controllers\Api\RevenueCatWebhookController;
 use App\Http\Controllers\Admin\SongModerationController;
 use App\Http\Controllers\Api\ArtistFollowController;
+use App\Http\Controllers\Api\NotificationController;
 
 /* -------------------- Public (no auth) -------------------- */
 
@@ -166,6 +167,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/artists/{artist}/follow',[ArtistFollowController::class, 'unfollow']);
 
     Route::get('/artists/popular',[ArtistController::class, 'popular']);
+
+    Route::get('/notifications',[NotificationController::class, 'index']);
+
+    Route::post('/notifications/{notification}/read',[NotificationController::class, 'markRead']);
 
 
     
