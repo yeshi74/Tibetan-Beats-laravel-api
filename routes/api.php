@@ -63,6 +63,10 @@ Route::get('/genres', [GenreController::class, 'index']);
 Route::get('/genres/featured', [GenreController::class, 'featured']);
 
 
+Route::get('/music-genres', [SongApiController::class, 'allGenres']);
+
+
+
 /* -------------------- Authenticated (requires sanctum) -------------------- */
 Route::middleware('auth:sanctum')->group(function () {
     // 👤 Profile

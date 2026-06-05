@@ -12,6 +12,7 @@ use App\Models\Song;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use App\Models\RecentlyPlayed;
 use App\Models\Notification;
+use App\Models\Genre;
 
 class SongApiController extends Controller
 {
@@ -567,6 +568,15 @@ public function search(Request $request)
             ->pluck('genre');
 
         return response()->json(['status' => 'success', 'data' => $genres]);
+    }
+
+
+    public function allGenres()
+    {
+        return response()->json([
+            'status' => 'success',
+            'data' => Genre::orderBy('name')->get(),
+        ]);
     }
 
     /**
