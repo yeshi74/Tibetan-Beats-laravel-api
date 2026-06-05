@@ -11,6 +11,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Song;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use App\Models\RecentlyPlayed;
+use App\Models\Notification;
 
 class SongApiController extends Controller
 {
@@ -491,6 +492,8 @@ public function search(Request $request)
         if ($song->file_path) Storage::disk('public')->delete($song->file_path);
         if ($song->cover_image) Storage::disk('public')->delete($song->cover_image);
 
+        Notification::where('type', 'artist_song')->where('data->song_id', $song->id)->delete();
+
         $song->delete();
 
         return response()->json(['status' => 'success', 'message' => 'Song deleted successfully']);
@@ -689,6 +692,15 @@ public function search(Request $request)
             ->pluck('song')
             ->filter()
             ->values();
+
+        $songs = $songs->map(function ($song) use ($user) {
+
+            $song->is_liked = $user->likedSongs()
+                ->where('song_id', $song->id)
+                ->exists();
+
+            return $song;
+        });
 
         return response()->json([
             'songs' => $songs,

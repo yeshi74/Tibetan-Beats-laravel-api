@@ -11,11 +11,26 @@ class NotificationController extends Controller
     public function index(Request $request)
     {
         $notifications = Notification::where(
-            'user_id',
-            $request->user()->id
-        )
-        ->latest()
-        ->get();
+        'user_id',
+        $request->user()->id
+    )
+    ->latest()
+    ->get()
+    ->filter(function ($notification) {
+
+        if ($notification->type !== 'artist_song') {
+            return true;
+        }
+
+        $songId = $notification->data['song_id'] ?? null;
+
+        if (!$songId) {
+            return false;
+        }
+
+        return \App\Models\Song::where('id', $songId)->exists();
+    })
+    ->values();
 
         return response()->json([
             'status' => 'success',
