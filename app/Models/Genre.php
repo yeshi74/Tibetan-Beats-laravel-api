@@ -14,5 +14,12 @@ class Genre extends Model
         'description',
         'is_featured',
     ];
+
+    public function songs()
+    {
+        return $this->hasMany(Song::class);
+    }
+
+
 }
 

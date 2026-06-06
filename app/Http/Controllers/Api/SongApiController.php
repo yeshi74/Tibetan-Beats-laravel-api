@@ -575,7 +575,9 @@ public function search(Request $request)
     {
         return response()->json([
             'status' => 'success',
-            'data' => Genre::orderBy('name')->get(),
+            'data' => Genre::withCount('songs')
+                        ->orderBy('name')
+                        ->get(),
         ]);
     }
 
