@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Dedication;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Models\Notification;
 
 class DedicationModerationController extends Controller
 {
@@ -37,15 +38,49 @@ class DedicationModerationController extends Controller
     public function approve(Request $req, Dedication $dedication)
     {
         if ($dedication->status !== 'approved') {
-            $dedication->fill([
-                'status'       => 'approved',
-                'reviewed_by'  => auth()->id(),
-                'reviewed_at'  => now(),
-                'reject_reason'=> null,
-            ])->save();
 
-            $this->audit('dedication.approved', ['id'=>$dedication->id]);
+        $dedication->fill([
+            'status'       => 'approved',
+            'reviewed_by'  => auth()->id(),
+            'reviewed_at'  => now(),
+            'reject_reason'=> null,
+        ])->save();
+
+        // Notify recipient if this dedication was sent to an app user
+        if ($dedication->to_user_id) {
+
+            $dedication->loadMissing(['user', 'song']);
+
+            Notification::create([
+                'user_id' => $dedication->to_user_id,
+
+                'title' => 'New Song Dedication',
+
+                'body' =>
+                    ($dedication->user->name ?? 'Someone')
+                    .' dedicated "'
+                    .($dedication->song->title ?? 'a song')
+                    .'" to you.',
+
+                'type' => 'dedication',
+
+                'data' => [
+                    'dedication_id' => $dedication->id,
+                    'song_id'       => $dedication->song_id,
+
+                    // New fields
+                    'sender_name'   => $dedication->user->name ?? 'Someone',
+                    'song_title'    => $dedication->song->title ?? 'a song',
+                ],
+
+                'is_read' => false,
+            ]);
         }
+
+        $this->audit('dedication.approved', [
+            'id' => $dedication->id
+        ]);
+    }
         return back()->with('status','Approved');
     }
 
