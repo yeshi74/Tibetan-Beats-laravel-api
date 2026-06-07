@@ -71,6 +71,7 @@ class DedicationModerationController extends Controller
                     // New fields
                     'sender_name'   => $dedication->user->name ?? 'Someone',
                     'song_title'    => $dedication->song->title ?? 'a song',
+                    'message'       => $dedication->message,
                 ],
 
                 'is_read' => false,
