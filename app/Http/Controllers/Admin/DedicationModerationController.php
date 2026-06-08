@@ -39,50 +39,76 @@ class DedicationModerationController extends Controller
     {
         if ($dedication->status !== 'approved') {
 
-        $dedication->fill([
-            'status'       => 'approved',
-            'reviewed_by'  => auth()->id(),
-            'reviewed_at'  => now(),
-            'reject_reason'=> null,
-        ])->save();
-
-        // Notify recipient if this dedication was sent to an app user
-        if ($dedication->to_user_id) {
+            $dedication->fill([
+                'status'        => 'approved',
+                'reviewed_by'   => auth()->id(),
+                'reviewed_at'   => now(),
+                'reject_reason' => null,
+            ])->save();
 
             $dedication->loadMissing(['user', 'song']);
 
-            Notification::create([
-                'user_id' => $dedication->to_user_id,
+            // Notify recipient if this dedication was sent to an app user
+            if ($dedication->to_user_id) {
 
-                'title' => 'New Song Dedication',
+                Notification::create([
+                    'user_id' => $dedication->to_user_id,
+
+                    'title' => 'New Song Dedication',
+
+                    'body' =>
+                        ($dedication->user->name ?? 'Someone')
+                        . ' dedicated "'
+                        . ($dedication->song->title ?? 'a song')
+                        . '" to you.',
+
+                    'type' => 'dedication',
+
+                    'data' => [
+                        'dedication_id' => $dedication->id,
+                        'song_id'       => $dedication->song_id,
+
+                        'sender_name'   => $dedication->user->name ?? 'Someone',
+                        'song_title'    => $dedication->song->title ?? 'a song',
+                        'message'       => $dedication->message,
+                    ],
+
+                    'is_read' => false,
+                ]);
+            }
+
+            // Notify sender that dedication was delivered
+            Notification::create([
+                'user_id' => $dedication->user_id,
+
+                'title' => 'Dedication Delivered',
 
                 'body' =>
-                    ($dedication->user->name ?? 'Someone')
-                    .' dedicated "'
-                    .($dedication->song->title ?? 'a song')
-                    .'" to you.',
+                    'Your dedication of "'
+                    . ($dedication->song->title ?? 'a song')
+                    . '" to '
+                    . ($dedication->to_name ?? 'someone')
+                    . ' has been delivered.',
 
-                'type' => 'dedication',
+                'type' => 'dedication_delivered',
 
                 'data' => [
-                    'dedication_id' => $dedication->id,
-                    'song_id'       => $dedication->song_id,
-
-                    // New fields
-                    'sender_name'   => $dedication->user->name ?? 'Someone',
-                    'song_title'    => $dedication->song->title ?? 'a song',
-                    'message'       => $dedication->message,
+                    'dedication_id'  => $dedication->id,
+                    'song_id'        => $dedication->song_id,
+                    'song_title'     => $dedication->song->title ?? 'a song',
+                    'recipient_name' => $dedication->to_name,
+                    'message'        => $dedication->message,
                 ],
 
                 'is_read' => false,
             ]);
+
+            $this->audit('dedication.approved', [
+                'id' => $dedication->id
+            ]);
         }
 
-        $this->audit('dedication.approved', [
-            'id' => $dedication->id
-        ]);
-    }
-        return back()->with('status','Approved');
+        return back()->with('status', 'Approved');
     }
 
     public function reject(Request $req, Dedication $dedication)
