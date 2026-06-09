@@ -38,9 +38,16 @@
       <a href="{{ route('admin.albums.index') }}" data-href="{{ route('admin.albums.index') }}" class="nav-link block px-3 py-2 rounded bg-gray-700 hover:bg-gray-700/80">💿 Albums</a>
       <a href="{{ route('admin.playlists.index') }}" data-href="{{ route('admin.playlists.index') }}" class="nav-link block px-3 py-2 rounded bg-gray-700 hover:bg-gray-700/80">📚 Playlists</a>
       <a href="{{ route('admin.artists.index') }}" data-href="{{ route('admin.artists.index') }}" class="nav-link block px-3 py-2 rounded bg-gray-700 hover:bg-gray-700/80">🎤 Artists</a>
+      <a href="{{ route('admin.song-claims.index') }}"
+       data-href="{{ route('admin.song-claims.index') }}"
+       class="nav-link block px-3 py-2 rounded bg-gray-700 hover:bg-gray-700/80">
+       ⚖ Ownership Claims
+    </a>
       <a href="{{ route('admin.users.index') }}" data-href="{{ route('admin.users.index') }}" class="nav-link block px-3 py-2 rounded bg-gray-700 hover:bg-gray-700/80">👥 Users</a>
       <a href="{{ route('admin.in_app_messages.index') }}" data-href="{{ route('admin.in_app_messages.index') }}" class="nav-link block px-3 py-2 rounded bg-gray-700 hover:bg-gray-700/80">✉️ In-App Messages</a>
       <a href="{{ route('admin.genres.index') }}" data-href="{{ route('admin.genres.index') }}" class="nav-link block px-3 py-2 rounded bg-gray-700 hover:bg-gray-700/80">📁 Genres</a>
+
+      <a href="{{ route('admin.moderation.dedications.index') }}" data-href="{{ route('admin.moderation.dedications.index') }}" class="nav-link block px-3 py-2 rounded bg-gray-700 hover:bg-gray-700/80">📁 Dedications</a>
     </nav>
 
     <div class="mt-auto">
@@ -88,9 +95,11 @@
                 ['label'=>'Albums','route'=>route('admin.albums.index')],
                 ['label'=>'Playlists','route'=>route('admin.playlists.index')],
                 ['label'=>'Artists','route'=>route('admin.artists.index')],
+                ['label'=>'Ownership Claims','route'=>route('admin.song-claims.index')],
                 ['label'=>'Users','route'=>route('admin.users.index')],
                 ['label'=>'In-App Messages','route'=>route('admin.in_app_messages.index')],
                 ['label'=>'Genres','route'=>route('admin.genres.index')],
+                ['label'=>'Dedications','route'=>route('admin.moderation.dedications.index')],
               ];
             @endphp
 

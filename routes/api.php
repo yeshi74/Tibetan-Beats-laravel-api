@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\RevenueCatWebhookController;
 use App\Http\Controllers\Admin\SongModerationController;
 use App\Http\Controllers\Api\ArtistFollowController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\SongClaimController;
 
 /* -------------------- Public (no auth) -------------------- */
 
@@ -177,6 +178,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/notifications/{notification}/read',[NotificationController::class, 'markRead']);
 
     Route::get('/notifications/unread-count',[NotificationController::class, 'unreadCount']);
+
+    Route::post('/song-claims',[SongClaimController::class, 'store']);
 
 
     
