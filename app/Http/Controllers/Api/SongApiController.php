@@ -70,6 +70,8 @@ class SongApiController extends Controller
             // compatibility: boolean and numeric forms
             'is_liked'        => (bool) $isLiked,
             'liked'           => $isLiked ? 1 : 0,
+            'status'          => $song->status,
+            'rejection_reason' => $song->rejection_reason,
         ];
     }
 

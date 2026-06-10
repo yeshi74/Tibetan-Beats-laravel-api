@@ -152,6 +152,7 @@ class SongAdminController extends Controller
     public function approve(Song $song)
     {
         $song->status = 'published';
+        $song->rejection_reason = null;
 
         if (\Schema::hasColumn('songs', 'is_published')) {
             $song->is_published = true;
@@ -192,12 +193,23 @@ class SongAdminController extends Controller
             );
     }
 
-    public function reject(Song $song)
+    public function reject(Request $request, Song $song)
     {
-        $song->status = 'rejected';
-        $song->save();
+        $request->validate([
+            'rejection_reason' => ['required', 'string', 'max:1000'],
+        ]);
 
-        return redirect()->back()->with('error', "❌ '{$song->title}' rejected.");
+        $song->update([
+            'status' => 'rejected',
+            'rejection_reason' => $request->rejection_reason,
+        ]);
+
+        return redirect()
+            ->back()
+            ->with(
+                'error',
+                "❌ '{$song->title}' rejected."
+            );
     }
 
     /**

@@ -148,14 +148,20 @@ public function me(Request $request)
             'id' => $s->id,
             'title' => $s->title,
             'status' => $s->status,
+            'rejection_reason' => $s->rejection_reason,
+
             'genre_id' => $s->genre_id,
             'play_count' => (int) ($s->play_count ?? 0),
-            'cover_image_url' => $s->cover_image ? url('storage/' . ltrim($s->cover_image, '/')) : null,
+
+            'cover_image_url' => $s->cover_image
+                ? url('storage/' . ltrim($s->cover_image, '/'))
+                : null,
+
             'file_path' => $s->file_path,
             'audio_url' => url('/api/songs/stream/' . $s->id),
             'created_at' => optional($s->created_at)->toIso8601String(),
         ];
-    })->toArray();
+    });
 
     $artistPayload = [
         'id' => $artist->id,

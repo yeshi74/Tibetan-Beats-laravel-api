@@ -23,7 +23,8 @@ class Song extends Model
         'genre_id',
         'status',
         'is_published',
-        'created_at', 'updated_at'
+        'created_at', 'updated_at',
+        'rejection_reason',
     ];
 
     protected $appends = ['audio_url', 'cover_image_url'];

@@ -114,12 +114,28 @@
                         class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs">Approve</button>
             </form>
 
-            <form action="{{ route('admin.songs.reject', $song) }}" method="POST" class="inline"
-                  onsubmit="return confirm('Reject this song?')">
-                @csrf @method('PATCH')
-                <button type="submit" 
-                        class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs">Reject</button>
-            </form>
+            <form action="{{ route('admin.songs.reject', $song) }}"
+              method="POST"
+              class="inline-flex gap-2 items-center">
+            @csrf
+            @method('PATCH')
+
+            <input
+                type="text"
+                name="rejection_reason"
+                placeholder="Reason..."
+                required
+                class="border rounded px-2 py-1 text-xs text-black w-40"
+            >
+
+            <button
+                type="submit"
+                class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs"
+                onclick="return confirm('Reject this song?')"
+            >
+                Reject
+            </button>
+        </form>
         @endif
 
         <form action="{{ route('admin.songs.destroy', $song) }}" method="POST" class="inline"
