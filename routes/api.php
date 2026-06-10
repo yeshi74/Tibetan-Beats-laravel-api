@@ -21,6 +21,7 @@ use App\Http\Controllers\Admin\SongModerationController;
 use App\Http\Controllers\Api\ArtistFollowController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\SongClaimController;
+use App\Http\Controllers\Api\AccountController;
 
 /* -------------------- Public (no auth) -------------------- */
 
@@ -180,6 +181,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/notifications/unread-count',[NotificationController::class, 'unreadCount']);
 
     Route::post('/song-claims',[SongClaimController::class, 'store']);
+
+    //Account deletion
+    Route::delete('/account/delete',[AccountController::class, 'deleteAccount']);
 
 
     
