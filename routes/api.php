@@ -22,6 +22,7 @@ use App\Http\Controllers\Api\ArtistFollowController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\SongClaimController;
 use App\Http\Controllers\Api\AccountController;
+use App\Http\Controllers\Api\SongReportController;
 
 /* -------------------- Public (no auth) -------------------- */
 
@@ -184,6 +185,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     //Account deletion
     Route::delete('/account/delete',[AccountController::class, 'deleteAccount']);
+
+    //song report
+    Route::middleware('auth:sanctum')->post('/song-reports',[SongReportController::class, 'store']);
 
 
     

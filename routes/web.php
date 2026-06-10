@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\UserAdminController;
 use App\Http\Controllers\Admin\DedicationModerationController;
 use App\Http\Controllers\Admin\InAppMessageController;
 use App\Http\Controllers\Admin\AdminSongClaimController;
+use App\Http\Controllers\Admin\SongReportAdminController;
 
 
 Route::get('/', function () {
@@ -80,6 +81,17 @@ Route::middleware(['auth', 'is_admin'])
         Route::patch('song-claims/{claim}/approve',[AdminSongClaimController::class, 'approve'])->name('song-claims.approve');
 
         Route::patch('song-claims/{claim}/reject',[AdminSongClaimController::class, 'reject'])->name('song-claims.reject');
+
+        //song report
+        Route::get('song-reports',[SongReportAdminController::class, 'index'])
+            ->name('song-reports.index');
+
+        Route::patch('song-reports/{report}/review',[SongReportAdminController::class, 'review'])
+            ->name('song-reports.review');
+
+        Route::patch('song-reports/{report}/dismiss',[SongReportAdminController::class, 'dismiss'])
+            ->name('song-reports.dismiss');
+
 
 
     });

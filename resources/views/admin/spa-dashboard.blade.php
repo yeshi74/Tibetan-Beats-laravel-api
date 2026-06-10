@@ -48,6 +48,11 @@
       <a href="{{ route('admin.genres.index') }}" data-href="{{ route('admin.genres.index') }}" class="nav-link block px-3 py-2 rounded bg-gray-700 hover:bg-gray-700/80">📁 Genres</a>
 
       <a href="{{ route('admin.moderation.dedications.index') }}" data-href="{{ route('admin.moderation.dedications.index') }}" class="nav-link block px-3 py-2 rounded bg-gray-700 hover:bg-gray-700/80">📁 Dedications</a>
+
+      <a href="{{ route('admin.song-reports.index') }}" data-href="{{ route('admin.song-reports.index') }}" class="nav-link block px-3 py-2 rounded bg-gray-700 hover:bg-gray-700/80">🚩 Song Reports</a>
+
+      
+
     </nav>
 
     <div class="mt-auto">
@@ -100,6 +105,7 @@
                 ['label'=>'In-App Messages','route'=>route('admin.in_app_messages.index')],
                 ['label'=>'Genres','route'=>route('admin.genres.index')],
                 ['label'=>'Dedications','route'=>route('admin.moderation.dedications.index')],
+                ['label'=>'Dedications','route'=>route('admin.song-reports.index')],
               ];
             @endphp
 
