@@ -291,12 +291,6 @@ class SongApiController extends Controller
 
         $user = $this->resolveUser($request);
 
-        \Log::info('MARK PLAYED USER', [
-    'user_id' => $user?->id,
-    'song_id' => $song->id,
-]);
-        
-
         if ($user) {
             RecentlyPlayed::updateOrCreate(
                 [
@@ -698,26 +692,27 @@ public function search(Request $request)
             return response()->json([]);
         }
 
-        $songs = RecentlyPlayed::where('user_id',$user->id)
+        $likedIds = $user->likedSongs()
+            ->pluck('song_id')
+            ->toArray();
+
+        $songs = RecentlyPlayed::where('user_id', $user->id)
             ->latest('updated_at')
             ->take(20)
-            ->with('song')
+            ->with('song.genre')
             ->get()
             ->pluck('song')
             ->filter()
             ->values();
 
-        $songs = $songs->map(function ($song) use ($user) {
-
-            $song->is_liked = $user->likedSongs()
-                ->where('song_id', $song->id)
-                ->exists();
-
-            return $song;
-        });
-
         return response()->json([
-            'songs' => $songs,
+            'songs' => $songs->map(function ($song) use ($request, $likedIds) {
+                return $this->transformSong(
+                    $request,
+                    $song,
+                    $likedIds
+                );
+            })->values(),
         ]);
     }
 
