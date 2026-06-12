@@ -221,10 +221,19 @@ public function me(Request $request)
 
             $followersCount = $artist->followers()->count();
 
-        return response()->json([
-            'success' => true,
-            'artist' => [
+            $alreadyArtist = \App\Models\Artist::where('user_id', $user->id)->exists();
+
+            $hasPendingClaim = false;
+
+            if ($user) {
+                $hasPendingClaim = \App\Models\ArtistClaim::where('artist_id',$artist->id)->where('user_id',$user->id)->where('status','pending')->exists();
+            }
+
+            return response()->json([
+                'success' => true,
+                'artist' => [
                 'id' => $artist->id,
+                'user_id' => $artist->user_id,
                 'display_name' => $artist->display_name,
                 'real_name' => $artist->real_name,
                 'country' => $artist->country,
@@ -236,9 +245,16 @@ public function me(Request $request)
                 'followers_count' => $followersCount,
                 'is_following' => $isFollowing,
                 'is_own_profile' => $isOwnProfile,
-            ],
-            'songs' => $songs,
-        ]);
+                'can_claim' => (
+                    is_null($artist->user_id)
+                    && !$alreadyArtist
+                    && !$hasPendingClaim
+                ),
+
+                'has_pending_claim' => $hasPendingClaim,
+                ],
+                'songs' => $songs,
+            ]);
     }
 
     public function dashboard()
@@ -444,6 +460,85 @@ public function me(Request $request)
 
         return response()->json([
             'artists' => $artists,
+        ]);
+    }
+
+
+    public function artistStatus(Request $request)
+    {
+        $user = $request->user();
+
+        $artist = Artist::where(
+            'user_id',
+            $user->id
+        )->first();
+
+        if ($artist) {
+            return response()->json([
+                'is_artist' => true,
+                'artist_id' => $artist->id,
+                'has_pending_claim' => false,
+                'possible_artist_match' => false,
+            ]);
+        }
+
+        $pendingClaim = \App\Models\ArtistClaim::where(
+            'user_id',
+            $user->id
+        )
+        ->where(
+            'status',
+            'pending'
+        )
+        ->first();
+
+        if ($pendingClaim) {
+            return response()->json([
+                'is_artist' => false,
+                'has_pending_claim' => true,
+                'possible_artist_match' => false,
+            ]);
+        }
+
+        $possibleArtist = Artist::query()
+            ->whereNull('user_id')
+            ->where(function ($q) use ($user) {
+
+                $name = strtolower(trim($user->name));
+
+                $q->whereRaw(
+                    'LOWER(display_name) = ?',
+                    [$name]
+                )
+                ->orWhereRaw(
+                    'LOWER(real_name) = ?',
+                    [$name]
+                );
+            })
+            ->first();
+
+            if ($possibleArtist) {
+                return response()->json([
+                    'is_artist' => false,
+                    'has_pending_claim' => false,
+                    'possible_artist_match' => true,
+
+                    'matched_artist_id' => $possibleArtist->id,
+                    'matched_artist_name' => $possibleArtist->display_name,
+
+                    'matched_artist_image' => $possibleArtist->profile_image
+                        ? url('storage/' . ltrim($possibleArtist->profile_image, '/'))
+                        : null,
+
+                    'matched_artist_country' => $possibleArtist->country,
+
+                    'matched_artist_verified' => (bool) $possibleArtist->verified,
+                ]);
+            }
+        return response()->json([
+            'is_artist' => false,
+            'has_pending_claim' => false,
+            'possible_artist_match' => false,
         ]);
     }
 

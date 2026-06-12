@@ -13,6 +13,8 @@ use App\Http\Controllers\Admin\DedicationModerationController;
 use App\Http\Controllers\Admin\InAppMessageController;
 use App\Http\Controllers\Admin\AdminSongClaimController;
 use App\Http\Controllers\Admin\SongReportAdminController;
+use App\Http\Controllers\Admin\AdminArtistClaimController;
+use App\Http\Controllers\Admin\ArtistAdminController;
 
 
 Route::get('/', function () {
@@ -41,6 +43,7 @@ Route::middleware(['auth', 'is_admin'])
 
         Route::resource('albums', AlbumController::class);
         Route::resource('songs', SongAdminController::class);
+
         Route::resource('playlists', PlaylistController::class);
         Route::patch('playlists/{playlist}/toggle-featured', [PlaylistController::class, 'toggleFeatured'])
             ->name('playlists.toggleFeatured');
@@ -63,13 +66,23 @@ Route::middleware(['auth', 'is_admin'])
         Route::patch('in-app-messages/{inAppMessage}', [InAppMessageController::class,'update'])->name('in_app_messages.update');
         Route::delete('in-app-messages/{inAppMessage}', [InAppMessageController::class,'destroy'])->name('in_app_messages.destroy');
 
-        Route::get('/admin/artists/{artist}',[App\Http\Controllers\Admin\ArtistAdminController::class, 'show'])
-        ->name('admin.artists.show');
+        Route::get('artists/{artist}',[App\Http\Controllers\Admin\ArtistAdminController::class, 'show'])
+        ->name('artists.show');
+
 
         Route::get('artists', [\App\Http\Controllers\Admin\ArtistAdminController::class, 'index'])->name('artists.index');
+        Route::get('artists/create',[\App\Http\Controllers\Admin\ArtistAdminController::class, 'create'])
+        ->name('artists.create');
+        Route::get('artists/{artist}/edit',[ArtistAdminController::class, 'edit'])->name('artists.edit');
+        Route::put('artists/{artist}',[ArtistAdminController::class, 'update'])->name('artists.update');
+
+
+        Route::post('artists',[\App\Http\Controllers\Admin\ArtistAdminController::class, 'store'])->name('artists.store');
         Route::get('artists/{artist}', [\App\Http\Controllers\Admin\ArtistAdminController::class, 'show'])->name('artists.show');
         Route::patch('artists/{artist}/approve', [\App\Http\Controllers\Admin\ArtistAdminController::class, 'approve'])->name('artists.approve');
         Route::patch('artists/{artist}/reject', [\App\Http\Controllers\Admin\ArtistAdminController::class, 'reject'])->name('artists.reject');
+
+
 
         Route::patch('songs/{song}/approve', [SongAdminController::class, 'approve'])->name('songs.approve');
         Route::patch('songs/{song}/reject', [SongAdminController::class, 'reject'])->name('songs.reject');
@@ -92,6 +105,16 @@ Route::middleware(['auth', 'is_admin'])
         Route::patch('song-reports/{report}/dismiss',[SongReportAdminController::class, 'dismiss'])
             ->name('song-reports.dismiss');
 
+
+            // Artist Claims
+
+        Route::get('artist-claims',[AdminArtistClaimController::class, 'index'])->name('artist-claims.index');
+
+        Route::get('artist-claims/{claim}',[AdminArtistClaimController::class, 'show'])->name('artist-claims.show');
+
+        Route::patch('artist-claims/{claim}/approve',[AdminArtistClaimController::class, 'approve'])->name('artist-claims.approve');
+
+        Route::patch('artist-claims/{claim}/reject',[AdminArtistClaimController::class, 'reject'])->name('artist-claims.reject');
 
 
     });

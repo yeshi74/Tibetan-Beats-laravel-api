@@ -2,7 +2,7 @@
 
 @section('content')
 <div class="container">
-    <h2 class="mb-4">Artist Applications</h2>
+    <h2 class="mb-4">Artists</h2>
 
     @if(session('success'))
         <div class="alert alert-success">{{ session('success') }}</div>
@@ -11,6 +11,13 @@
     @if(session('error'))
         <div class="alert alert-danger">{{ session('error') }}</div>
     @endif
+
+    <div class="mb-3">
+        <a href="{{ route('admin.artists.create') }}"
+           class="btn btn-primary">
+            + Create Artist Profile
+        </a>
+    </div>
 
     <table class="table table-bordered table-hover align-middle">
         <thead class="table-dark">
@@ -33,7 +40,11 @@
                             {{ $artist->user->name }} <br>
                             <small class="text-muted">{{ $artist->user->email }}</small>
                         @else
-                            <span class="text-muted">[deleted user]</span>
+                            @if(is_null($artist->user_id))
+                                <span class="badge bg-secondary">Unclaimed Profile</span>
+                            @else
+                                <span class="text-muted">[deleted user]</span>
+                            @endif
                         @endif
                     </td>
                     <td>
@@ -50,7 +61,9 @@
                     <td>{{ $artist->display_name }}</td>
                     
                     <td>
-                        @if($artist->verified)
+                        @if(is_null($artist->user_id))
+                            <span class="badge bg-secondary">Unclaimed</span>
+                        @elseif($artist->verified)
                             <span class="badge bg-success">Approved</span>
                         @else
                             <span class="badge bg-warning text-dark">Pending</span>

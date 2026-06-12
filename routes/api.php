@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\SongClaimController;
 use App\Http\Controllers\Api\AccountController;
 use App\Http\Controllers\Api\SongReportController;
+use App\Http\Controllers\Api\ArtistClaimController;
 
 /* -------------------- Public (no auth) -------------------- */
 
@@ -188,6 +189,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
     //song report
     Route::middleware('auth:sanctum')->post('/song-reports',[SongReportController::class, 'store']);
+
+    //claim profile
+    Route::post('/artist-claims',[ArtistClaimController::class, 'store']);
+
+    Route::get('/artist-status', [ArtistController::class, 'artistStatus']);
 
 
     

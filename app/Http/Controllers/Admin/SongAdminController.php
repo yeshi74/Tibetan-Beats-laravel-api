@@ -45,7 +45,12 @@ class SongAdminController extends Controller
     {
         $albums = Album::all();
         $genres = Genre::orderBy('name')->get();
-        return view('admin.songs.create', compact('albums', 'genres'));
+        $artists = Artist::orderBy('display_name')->get();
+
+        return view(
+            'admin.songs.create',
+            compact('albums', 'genres', 'artists')
+        );
     }
 
     public function store(Request $request)
@@ -65,7 +70,7 @@ class SongAdminController extends Controller
 
         $validated = $request->validate([
             'title'       => 'required|string|max:255',
-            'artist'      => 'required|string|max:255',
+            'artist_id' => 'required|exists:artists,id',
             'file'        => 'required|file|mimes:mp3,wav|max:51200',
             'cover_image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'album_id'    => 'nullable|exists:albums,id',
@@ -81,9 +86,12 @@ class SongAdminController extends Controller
             ? $request->file('cover_image')->store('covers', 'public')
             : null;
 
+            $artist = Artist::findOrFail($validated['artist_id']);
+
         Song::create([
             'title'       => $validated['title'],
-            'artist'      => $validated['artist'],
+            'artist_id' => $artist->id,
+            'artist' => $artist->display_name,
             'file_path'   => $filePath,
             'cover_image' => $coverPath,
             'album_id'    => $validated['album_id'] ?? null,

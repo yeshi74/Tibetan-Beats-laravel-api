@@ -33,6 +33,12 @@
     </div>
 
     <nav class="space-y-2 mb-6">
+
+      <div class="flex items-center gap-4">
+        <button id="btn-dashboard" class="bg-amber-400 text-black px-3 py-1 rounded">Admin Dashboard</button>
+      </div>
+      
+
       <a href="{{ route('admin.songs.index') }}" data-href="{{ route('admin.songs.index') }}" class="nav-link block px-3 py-2 rounded bg-gray-700 hover:bg-gray-700/80">🎵 Songs</a>
       <a href="{{ route('admin.songs.create') }}" data-href="{{ route('admin.songs.create') }}" class="nav-link block px-3 py-2 rounded bg-gray-700 hover:bg-gray-700/80">＋ Upload Song</a>
       <a href="{{ route('admin.albums.index') }}" data-href="{{ route('admin.albums.index') }}" class="nav-link block px-3 py-2 rounded bg-gray-700 hover:bg-gray-700/80">💿 Albums</a>
@@ -43,6 +49,13 @@
        class="nav-link block px-3 py-2 rounded bg-gray-700 hover:bg-gray-700/80">
        ⚖ Ownership Claims
     </a>
+
+    <a href="{{ route('admin.artist-claims.index') }}"
+       data-href="{{ route('admin.artist-claims.index') }}"
+       class="nav-link block px-3 py-2 rounded bg-gray-700 hover:bg-gray-700/80">
+        🎤 Artist Claims
+    </a>
+
       <a href="{{ route('admin.users.index') }}" data-href="{{ route('admin.users.index') }}" class="nav-link block px-3 py-2 rounded bg-gray-700 hover:bg-gray-700/80">👥 Users</a>
       <a href="{{ route('admin.in_app_messages.index') }}" data-href="{{ route('admin.in_app_messages.index') }}" class="nav-link block px-3 py-2 rounded bg-gray-700 hover:bg-gray-700/80">✉️ In-App Messages</a>
       <a href="{{ route('admin.genres.index') }}" data-href="{{ route('admin.genres.index') }}" class="nav-link block px-3 py-2 rounded bg-gray-700 hover:bg-gray-700/80">📁 Genres</a>
@@ -101,11 +114,12 @@
                 ['label'=>'Playlists','route'=>route('admin.playlists.index')],
                 ['label'=>'Artists','route'=>route('admin.artists.index')],
                 ['label'=>'Ownership Claims','route'=>route('admin.song-claims.index')],
+                ['label'=>'Artist Claims','route'=>route('admin.artist-claims.index')],
                 ['label'=>'Users','route'=>route('admin.users.index')],
                 ['label'=>'In-App Messages','route'=>route('admin.in_app_messages.index')],
                 ['label'=>'Genres','route'=>route('admin.genres.index')],
                 ['label'=>'Dedications','route'=>route('admin.moderation.dedications.index')],
-                ['label'=>'Dedications','route'=>route('admin.song-reports.index')],
+                ['label'=>'Song Report','route'=>route('admin.song-reports.index')],
               ];
             @endphp
 

@@ -28,6 +28,94 @@ class ArtistAdminController extends Controller
         return view('admin.artists.index', compact('artists'));
     }
 
+    public function create()
+    {
+        return view('admin.artists.create');
+    }
+
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'display_name' => ['required', 'string', 'max:255'],
+            'real_name' => ['nullable', 'string', 'max:255'],
+            'country' => ['nullable', 'string', 'max:255'],
+            'profile_image' => ['nullable', 'image', 'max:5120'],
+        ]);
+
+        $profileImage = null;
+
+        if ($request->hasFile('profile_image')) {
+            $profileImage = $request
+                ->file('profile_image')
+                ->store('artists', 'public');
+        }
+
+        Artist::create([
+            'user_id' => null,
+            'display_name' => $validated['display_name'],
+            'real_name' => $validated['real_name'] ?? null,
+            'country' => $validated['country'] ?? null,
+            'profile_image' => $profileImage,
+            'verified' => false,
+        ]);
+
+        return redirect()
+            ->route('admin.artists.index')
+            ->with('success', 'Artist profile created.');
+    }
+
+    public function edit(Artist $artist)
+    {
+        return view(
+            'admin.artists.edit',
+            compact('artist')
+        );
+    }
+
+    public function update(Request $request,Artist $artist)
+    {
+        $validated = $request->validate([
+            'display_name' => ['required', 'string', 'max:255'],
+            'real_name' => ['nullable', 'string', 'max:255'],
+            'country' => ['nullable', 'string', 'max:255'],
+            'profile_image' => ['nullable', 'image', 'max:5120'],
+        ]);
+
+        if ($request->hasFile('profile_image')) {
+
+            if ($artist->profile_image) {
+                \Storage::disk('public')
+                    ->delete($artist->profile_image);
+            }
+
+            $artist->profile_image = $request
+                ->file('profile_image')
+                ->store('artists', 'public');
+        }
+
+        $artist->display_name =
+            $validated['display_name'];
+
+        $artist->real_name =
+            $validated['real_name'] ?? null;
+
+        $artist->country =
+            $validated['country'] ?? null;
+
+        $artist->save();
+
+        return redirect()
+            ->route(
+                'admin.artists.show',
+                $artist
+            )
+            ->with(
+                'success',
+                'Artist updated successfully.'
+            );
+    }
+
+
     // GET /admin/artists/{artist}
     public function show(\App\Models\Artist $artist)
     {

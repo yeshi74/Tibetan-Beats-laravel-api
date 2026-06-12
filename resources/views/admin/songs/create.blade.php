@@ -29,8 +29,23 @@
 
             <div class="mb-4">
                 <label class="block font-medium">Artist</label>
-                <input type="text" name="artist" 
-                       class="w-full bg-gray-800 text-white border border-gray-600 rounded px-4 py-2">
+
+                <select
+                    name="artist_id"
+                    class="w-full bg-gray-800 text-white border border-gray-600 rounded px-4 py-2"
+                    required
+                >
+                    <option value="">-- Select Artist --</option>
+
+                    @foreach($artists as $artist)
+                        <option value="{{ $artist->id }}">
+                            {{ $artist->display_name }}
+                            @if(is_null($artist->user_id))
+                                (Unclaimed)
+                            @endif
+                        </option>
+                    @endforeach
+                </select>
             </div>
 
             <div class="mb-4">

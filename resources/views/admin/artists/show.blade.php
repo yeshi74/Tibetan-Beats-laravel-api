@@ -28,6 +28,20 @@
 
                     <h3>{{ $artist->display_name }}</h3>
 
+                    @if($artist->user_id)
+
+                        <span class="badge bg-success">
+                            Claimed
+                        </span>
+
+                    @else
+
+                        <span class="badge bg-warning text-dark">
+                            Unclaimed
+                        </span>
+
+                    @endif
+
                     <hr>
 
                     <p>
@@ -117,6 +131,16 @@
             @endif
 
         </div>
+    </div>
+
+    <div class="mb-4">
+
+        <a href="{{ route('admin.artists.edit', $artist) }}"
+           class="btn btn-primary">
+            <i class="fas fa-edit"></i>
+            Edit Artist
+        </a>
+
     </div>
 
     <div class="d-flex gap-2">
