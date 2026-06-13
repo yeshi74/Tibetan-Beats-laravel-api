@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AppSection;
 use Illuminate\Http\Request;
 use App\Models\Song;
+use App\Models\Artist;
 
 class AppSectionController extends Controller
 {
@@ -45,6 +46,26 @@ class AppSectionController extends Controller
                         'id' => $section->playlist->id,
                         'name' => $section->playlist->name,
                     ] : null,
+
+                    'artists' => $section->section_type === 'popular_artists'
+                        ? Artist::withCount('followers')
+                            ->where('verified', true)
+                            ->orderByDesc('followers_count')
+                            ->take(10)
+                            ->get()
+                            ->map(function ($artist) {
+                                return [
+                                    'id' => $artist->id,
+                                    'display_name' => $artist->display_name,
+                                    'verified' => (bool) $artist->verified,
+                                    'followers_count' => $artist->followers_count,
+                                    'profile_image' => $artist->profile_image
+                                        ? url('storage/' . ltrim($artist->profile_image, '/'))
+                                        : null,
+                                ];
+                            })
+                            ->values()
+                        : [],
 
                     'songs' => match ($section->section_type) {
 
