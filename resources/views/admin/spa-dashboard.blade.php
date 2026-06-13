@@ -39,6 +39,8 @@
       </div>
       
 
+      <a href="{{ route('admin.app-sections.index') }}" data-href="{{ route('admin.app-sections.index') }}" class="nav-link block px-3 py-2 rounded bg-gray-700 hover:bg-gray-700/80">App Sections</a>
+
       <a href="{{ route('admin.songs.index') }}" data-href="{{ route('admin.songs.index') }}" class="nav-link block px-3 py-2 rounded bg-gray-700 hover:bg-gray-700/80">🎵 Songs</a>
       <a href="{{ route('admin.songs.create') }}" data-href="{{ route('admin.songs.create') }}" class="nav-link block px-3 py-2 rounded bg-gray-700 hover:bg-gray-700/80">＋ Upload Song</a>
       <a href="{{ route('admin.albums.index') }}" data-href="{{ route('admin.albums.index') }}" class="nav-link block px-3 py-2 rounded bg-gray-700 hover:bg-gray-700/80">💿 Albums</a>
@@ -108,6 +110,7 @@
           <div class="grid grid-cols-3 gap-4">
             @php
               $links = [
+                ['label'=>'App Sections','route'=>route('admin.app-sections.index')],
                 ['label'=>'Songs','route'=>route('admin.songs.index')],
                 ['label'=>'Upload Song','route'=>route('admin.songs.create')],
                 ['label'=>'Albums','route'=>route('admin.albums.index')],

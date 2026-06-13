@@ -1,0 +1,122 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\AppSection;
+use Illuminate\Http\Request;
+use App\Models\Song;
+
+class AppSectionController extends Controller
+{
+    public function home(Request $request)
+    {
+        $sections = AppSection::with([
+            'genre:id,name',
+            'playlist:id,name'
+        ])
+            ->where('page', 'home')
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->get([
+                'id',
+                'title',
+                'section_type',
+                'reference_id',
+                'sort_order',
+            ]);
+
+        return response()->json([
+            'sections' => $sections->map(function ($section) use ($request) {
+
+                return [
+                    'id' => $section->id,
+                    'title' => $section->title,
+                    'section_type' => $section->section_type,
+                    'reference_id' => $section->reference_id,
+                    'sort_order' => $section->sort_order,
+
+                    'genre' => $section->genre ? [
+                        'id' => $section->genre->id,
+                        'name' => $section->genre->name,
+                    ] : null,
+
+                    'playlist' => $section->playlist ? [
+                        'id' => $section->playlist->id,
+                        'name' => $section->playlist->name,
+                    ] : null,
+
+                    'songs' => match ($section->section_type) {
+
+                        'playlist' => $section->playlist
+                            ? $section->playlist->songs()
+                                ->latest()
+                                ->take(10)
+                                ->get()
+                                ->map(fn ($song) => $this->transformSong($request, $song))
+                                ->values()
+                            : [],
+
+                        'genre' => $section->genre
+                            ? Song::where('genre_id', $section->genre->id)
+                                ->latest()
+                                ->take(10)
+                                ->get()
+                                ->map(fn ($song) => $this->transformSong($request, $song))
+                                ->values()
+                            : [],
+
+                        'latest_songs' => Song::latest()
+                            ->take(10)
+                            ->get()
+                            ->map(fn ($song) => $this->transformSong($request, $song))
+                            ->values(),
+
+                        'trending_songs' => Song::orderByDesc('play_count')
+                            ->take(12)
+                            ->get()
+                            ->map(fn ($song) => $this->transformSong($request, $song))
+                            ->values(),
+
+                        'most_liked_songs' => Song::select('songs.*')
+                            ->leftJoin('liked_songs', 'songs.id', '=', 'liked_songs.song_id')
+                            ->selectRaw('COUNT(liked_songs.id) as likes_count')
+                            ->groupBy('songs.id')
+                            ->orderByDesc('likes_count')
+                            ->take(15)
+                            ->get()
+                            ->map(fn ($song) => $this->transformSong($request, $song))
+                            ->values(),
+
+                        default => [],
+                    },
+                ];
+            }),
+        ]);
+    }
+
+    protected function transformSong(Request $request, Song $song): array
+    {
+        $baseUrl = $request->getSchemeAndHttpHost();
+
+        return [
+            'id' => $song->id,
+            'title' => $song->title,
+            'artist' => $song->artist,
+            'artist_id' => $song->artist_id,
+            'genre_id' => $song->genre_id,
+            'genre' => $song->genre ? $song->genre->name : null,
+            'audio_url' => $baseUrl . '/api/songs/stream/' . $song->id,
+            'cover_image_url' => $song->cover_image
+                ? $baseUrl . '/storage/' . ltrim($song->cover_image, '/')
+                : null,
+            'created_at' => optional($song->created_at)->toIso8601String(),
+            'is_liked' => false,
+            'liked' => 0,
+            'status' => $song->status,
+            'rejection_reason' => $song->rejection_reason,
+        ];
+    }
+
+
+}

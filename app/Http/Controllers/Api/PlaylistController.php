@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Playlist;
 use App\Models\Song;
 use Illuminate\Http\Request;
+use App\Http\Resources\SongResource;
 
 class PlaylistController extends Controller
 {
@@ -92,19 +93,9 @@ class PlaylistController extends Controller
 
         $baseUrl = $request->getSchemeAndHttpHost();
 
-        $songs = $playlist->songs()->latest()->get()->map(function (Song $song) use ($baseUrl) {
-            return [
-                'id'              => $song->id,
-                'title'           => $song->title,
-                'artist'          => $song->artist,
-                // If your Song->genre is a relation/model, adjust accordingly
-                'genre'           => is_array($song->genre) ? $song->genre : $song->genre,
-                'audio_url'       => $baseUrl . '/api/songs/stream/' . $song->id,
-                'cover_image_url' => $song->cover_image
-                    ? $baseUrl . '/storage/' . $song->cover_image
-                    : null,
-            ];
-        });
+        $songs = SongResource::collection(
+            $playlist->songs()->latest()->get()
+        );
 
         return response()->json([
             'status'   => 'success',

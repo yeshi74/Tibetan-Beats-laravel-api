@@ -15,6 +15,7 @@ use App\Http\Controllers\Admin\AdminSongClaimController;
 use App\Http\Controllers\Admin\SongReportAdminController;
 use App\Http\Controllers\Admin\AdminArtistClaimController;
 use App\Http\Controllers\Admin\ArtistAdminController;
+use App\Http\Controllers\Admin\AppSectionController;
 
 
 Route::get('/', function () {
@@ -115,6 +116,9 @@ Route::middleware(['auth', 'is_admin'])
         Route::patch('artist-claims/{claim}/approve',[AdminArtistClaimController::class, 'approve'])->name('artist-claims.approve');
 
         Route::patch('artist-claims/{claim}/reject',[AdminArtistClaimController::class, 'reject'])->name('artist-claims.reject');
+
+        //home page control
+        Route::resource('app-sections', AppSectionController::class);
 
 
     });

@@ -24,6 +24,7 @@ use App\Http\Controllers\Api\SongClaimController;
 use App\Http\Controllers\Api\AccountController;
 use App\Http\Controllers\Api\SongReportController;
 use App\Http\Controllers\Api\ArtistClaimController;
+use App\Http\Controllers\Api\AppSectionController;
 
 /* -------------------- Public (no auth) -------------------- */
 
@@ -68,6 +69,9 @@ Route::get('/genres/featured', [GenreController::class, 'featured']);
 
 
 Route::get('/music-genres', [SongApiController::class, 'allGenres']);
+
+//home page admin control
+Route::get('/home/sections', [AppSectionController::class, 'home']);
 
 
 
@@ -158,7 +162,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('is_admin')->group(function () {
         Route::post('/admin/songs/{song}/approve', [SongModerationController::class, 'approve']);
         Route::post('/admin/songs/{song}/reject',  [SongModerationController::class, 'reject']);
+
+
     });
+
 
     Route::get('/artist/dashboard',[ArtistController::class, 'dashboard']);
     Route::delete('/artist/songs/{song}', [ArtistController::class, 'deleteSong']);
