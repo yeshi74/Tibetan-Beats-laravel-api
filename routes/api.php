@@ -176,6 +176,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/artists/popular',[ArtistController::class, 'popular']);
 
+    Route::get('/artists/recently-verified', [ArtistController::class, 'recentlyVerified']);
+
     Route::get('/notifications',[NotificationController::class, 'index']);
 
     Route::post('/notifications/{notification}/read',[NotificationController::class, 'markRead']);

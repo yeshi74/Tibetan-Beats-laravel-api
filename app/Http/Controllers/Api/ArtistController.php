@@ -464,6 +464,31 @@ public function me(Request $request)
     }
 
 
+    public function recentlyVerified()
+    {
+        $artists = Artist::withCount('followers')
+            ->where('verified', true)
+            ->latest()
+            ->take(10)
+            ->get()
+            ->map(function ($artist) {
+                return [
+                    'id' => $artist->id,
+                    'display_name' => $artist->display_name,
+                    'verified' => (bool) $artist->verified,
+                    'followers_count' => $artist->followers_count,
+                    'profile_image' => $artist->profile_image
+                        ? url('storage/' . ltrim($artist->profile_image, '/'))
+                        : null,
+                ];
+            });
+
+        return response()->json([
+            'artists' => $artists,
+        ]);
+    }
+
+
     public function artistStatus(Request $request)
     {
         $user = $request->user();
