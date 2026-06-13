@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\AccountController;
 use App\Http\Controllers\Api\SongReportController;
 use App\Http\Controllers\Api\ArtistClaimController;
 use App\Http\Controllers\Api\AppSectionController;
+use App\Http\Controllers\Api\AppSettingController;
 
 /* -------------------- Public (no auth) -------------------- */
 
@@ -72,6 +73,9 @@ Route::get('/music-genres', [SongApiController::class, 'allGenres']);
 
 //home page admin control
 Route::get('/home/sections', [AppSectionController::class, 'home']);
+
+//homepage top greeing
+Route::get('/settings', [AppSettingController::class, 'index']);
 
 
 

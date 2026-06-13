@@ -17,6 +17,10 @@ class DatabaseSeeder extends Seeder
             AppSectionSeeder::class,
         ]);
 
+        $this->call([
+            AppSettingSeeder::class,
+        ]);
+
         User::factory()->create([
             'name' => 'Test User',
             'email' => 'test@example.com',

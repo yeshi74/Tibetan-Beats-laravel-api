@@ -16,6 +16,7 @@ use App\Http\Controllers\Admin\SongReportAdminController;
 use App\Http\Controllers\Admin\AdminArtistClaimController;
 use App\Http\Controllers\Admin\ArtistAdminController;
 use App\Http\Controllers\Admin\AppSectionController;
+use App\Http\Controllers\Admin\AppSettingController;
 
 
 Route::get('/', function () {
@@ -119,6 +120,9 @@ Route::middleware(['auth', 'is_admin'])
 
         //home page control
         Route::resource('app-sections', AppSectionController::class);
+
+        Route::get('/settings',[AppSettingController::class, 'edit'])->name('settings.edit');
+        Route::post('/settings',[AppSettingController::class, 'update'])->name('settings.update');
 
 
     });
