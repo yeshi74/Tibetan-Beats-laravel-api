@@ -45,6 +45,9 @@
                 <option value="most_liked_songs">Most Liked Songs</option>
                 <option value="genre">Genre</option>
                 <option value="playlist">Playlist</option>
+                <option value="verified_artists">Verified Artists</option>
+                <option value="featured_genres">Featured Genres</option>
+                <option value="featured_playlists">Featured Playlists</option>
             </select>
         </div>
 

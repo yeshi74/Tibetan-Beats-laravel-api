@@ -84,6 +84,20 @@
                     {{ $appSection->section_type == 'playlist' ? 'selected' : '' }}>
                     Playlist
                 </option>
+                <option value="verified_artists"
+                    {{ $appSection->section_type == 'verified_artists' ? 'selected' : '' }}>
+                    Verified Artists
+                </option>
+
+                <option value="featured_genres"
+                    {{ $appSection->section_type == 'featured_genres' ? 'selected' : '' }}>
+                    Featured Genres
+                </option>
+
+                <option value="featured_playlists"
+                    {{ $appSection->section_type == 'featured_playlists' ? 'selected' : '' }}>
+                    Featured Playlists
+                </option>
             </select>
         </div>
 

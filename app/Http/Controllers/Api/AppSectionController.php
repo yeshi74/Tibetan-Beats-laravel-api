@@ -7,6 +7,8 @@ use App\Models\AppSection;
 use Illuminate\Http\Request;
 use App\Models\Song;
 use App\Models\Artist;
+use App\Models\Genre;
+use App\Models\Playlist;
 
 class AppSectionController extends Controller
 {
@@ -111,6 +113,76 @@ class AppSectionController extends Controller
 
                         default => [],
                     },
+                ];
+            }),
+        ]);
+    }
+
+    public function search(Request $request)
+    {
+        $sections = AppSection::with([
+            'genre:id,name',
+            'playlist:id,name'
+        ])
+            ->where('page', 'search')
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->get();
+
+        return response()->json([
+            'sections' => $sections->map(function ($section) use ($request) {
+
+                return [
+
+                    'id' => $section->id,
+                    'title' => $section->title,
+                    'section_type' => $section->section_type,
+                    'reference_id' => $section->reference_id,
+                    'sort_order' => $section->sort_order,
+
+                    'artists' => $section->section_type === 'verified_artists'
+                        ? Artist::where('verified', true)
+                            ->latest()
+                            ->take(10)
+                            ->get()
+                            ->map(function ($artist) {
+                                return [
+                                    'id' => $artist->id,
+                                    'display_name' => $artist->display_name,
+                                    'profile_image' => $artist->profile_image
+                                        ? url('storage/' . ltrim($artist->profile_image, '/'))
+                                        : null,
+                                ];
+                            })
+                            ->values()
+                        : [],
+
+                    'genres' => $section->section_type === 'featured_genres'
+                        ? Genre::where('is_featured', true)
+                            ->orderBy('name')
+                            ->get([
+                                'id',
+                                'name',
+                            ])
+                        : [],
+
+                    'playlists' => $section->section_type === 'featured_playlists'
+                        ? Playlist::where('is_featured', true)
+                            ->get([
+                                'id',
+                                'name',
+                                'cover_image',
+                            ])
+                        : [],
+
+                    'songs' => $section->section_type === 'playlist' && $section->playlist
+                        ? $section->playlist->songs()
+                            ->latest()
+                            ->take(10)
+                            ->get()
+                            ->map(fn ($song) => $this->transformSong($request, $song))
+                            ->values()
+                        : [],
                 ];
             }),
         ]);

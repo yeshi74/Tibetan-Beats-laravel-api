@@ -57,6 +57,9 @@ class AppSectionController extends Controller
                 'latest_songs',
                 'trending_songs',
                 'most_liked_songs',
+                'verified_artists',
+                'featured_genres',
+                'featured_playlists',
             ])
         ) {
             $validated['reference_id'] = null;
@@ -99,6 +102,9 @@ class AppSectionController extends Controller
                 'latest_songs',
                 'trending_songs',
                 'most_liked_songs',
+                'verified_artists',
+                'featured_genres',
+                'featured_playlists',
             ])
         ) {
             $validated['reference_id'] = null;

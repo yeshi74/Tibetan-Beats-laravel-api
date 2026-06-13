@@ -77,6 +77,8 @@ Route::get('/home/sections', [AppSectionController::class, 'home']);
 //homepage top greeing
 Route::get('/settings', [AppSettingController::class, 'index']);
 
+Route::get('/search/sections', [AppSectionController::class, 'search']);
+
 
 
 /* -------------------- Authenticated (requires sanctum) -------------------- */
