@@ -158,7 +158,8 @@ class AppSectionController extends Controller
                         : [],
 
                     'genres' => $section->section_type === 'featured_genres'
-                        ? Genre::where('is_featured', true)
+                        ? Genre::withCount('songs')
+                            ->where('is_featured', true)
                             ->orderBy('name')
                             ->get([
                                 'id',
@@ -168,11 +169,19 @@ class AppSectionController extends Controller
 
                     'playlists' => $section->section_type === 'featured_playlists'
                         ? Playlist::where('is_featured', true)
-                            ->get([
-                                'id',
-                                'name',
-                                'cover_image',
-                            ])
+                            ->get()
+                            ->map(function ($playlist) use ($request) {
+                                return [
+                                    'id' => $playlist->id,
+                                    'name' => $playlist->name,
+                                    'cover_image_url' => $playlist->cover_image
+                                        ? $request->getSchemeAndHttpHost() .
+                                            '/storage/' .
+                                            ltrim($playlist->cover_image, '/')
+                                        : null,
+                                ];
+                            })
+                            ->values()
                         : [],
 
                     'songs' => $section->section_type === 'playlist' && $section->playlist
