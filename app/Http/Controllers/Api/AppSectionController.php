@@ -9,11 +9,30 @@ use App\Models\Song;
 use App\Models\Artist;
 use App\Models\Genre;
 use App\Models\Playlist;
+use Illuminate\Support\Facades\DB;
 
 class AppSectionController extends Controller
 {
     public function home(Request $request)
     {
+
+        $user = $request->user();
+
+        \Log::info('HOME USER', [
+    'user' => $request->user()?->id,
+]);
+
+        $likedIds = $user
+            ? DB::table('liked_songs')
+                ->where('user_id', $user->id)
+                ->pluck('song_id')
+                ->toArray()
+            : [];
+
+            \Log::info('LIKED IDS', [
+    'likedIds' => $likedIds,
+]);
+
         $sections = AppSection::with([
             'genre:id,name',
             'playlist:id,name'
@@ -30,7 +49,7 @@ class AppSectionController extends Controller
             ]);
 
         return response()->json([
-            'sections' => $sections->map(function ($section) use ($request) {
+            'sections' => $sections->map(function ($section) use ($request, $likedIds) {
 
                 return [
                     'id' => $section->id,
@@ -76,7 +95,7 @@ class AppSectionController extends Controller
                                 ->latest()
                                 ->take(10)
                                 ->get()
-                                ->map(fn ($song) => $this->transformSong($request, $song))
+                                ->map(fn ($song) => $this->transformSong($request, $song, $likedIds))
                                 ->values()
                             : [],
 
@@ -85,20 +104,20 @@ class AppSectionController extends Controller
                                 ->latest()
                                 ->take(10)
                                 ->get()
-                                ->map(fn ($song) => $this->transformSong($request, $song))
+                                ->map(fn ($song) => $this->transformSong($request, $song, $likedIds))
                                 ->values()
                             : [],
 
                         'latest_songs' => Song::latest()
                             ->take(10)
                             ->get()
-                            ->map(fn ($song) => $this->transformSong($request, $song))
+                            ->map(fn ($song) => $this->transformSong($request, $song, $likedIds))
                             ->values(),
 
                         'trending_songs' => Song::orderByDesc('play_count')
                             ->take(12)
                             ->get()
-                            ->map(fn ($song) => $this->transformSong($request, $song))
+                            ->map(fn ($song) => $this->transformSong($request, $song, $likedIds))
                             ->values(),
 
                         'most_liked_songs' => Song::select('songs.*')
@@ -108,7 +127,7 @@ class AppSectionController extends Controller
                             ->orderByDesc('likes_count')
                             ->take(15)
                             ->get()
-                            ->map(fn ($song) => $this->transformSong($request, $song))
+                            ->map(fn ($song) => $this->transformSong($request, $song, $likedIds))
                             ->values(),
 
                         default => [],
@@ -120,6 +139,15 @@ class AppSectionController extends Controller
 
     public function search(Request $request)
     {
+        $user = $request->user();
+
+        $likedIds = $user
+            ? DB::table('liked_songs')
+                ->where('user_id', $user->id)
+                ->pluck('song_id')
+                ->toArray()
+            : [];
+
         $sections = AppSection::with([
             'genre:id,name',
             'playlist:id,name'
@@ -130,7 +158,7 @@ class AppSectionController extends Controller
             ->get();
 
         return response()->json([
-            'sections' => $sections->map(function ($section) use ($request) {
+            'sections' => $sections->map(function ($section) use ($request, $likedIds) {
 
                 return [
 
@@ -175,9 +203,9 @@ class AppSectionController extends Controller
                                     'id' => $playlist->id,
                                     'name' => $playlist->name,
                                     'cover_image_url' => $playlist->cover_image
-                                        ? $request->getSchemeAndHttpHost() .
-                                            '/storage/' .
-                                            ltrim($playlist->cover_image, '/')
+                                        ? $request->getSchemeAndHttpHost()
+                                            . '/storage/'
+                                            . ltrim($playlist->cover_image, '/')
                                         : null,
                                 ];
                             })
@@ -189,7 +217,11 @@ class AppSectionController extends Controller
                             ->latest()
                             ->take(10)
                             ->get()
-                            ->map(fn ($song) => $this->transformSong($request, $song))
+                            ->map(fn ($song) => $this->transformSong(
+                                $request,
+                                $song,
+                                $likedIds
+                            ))
                             ->values()
                         : [],
                 ];
@@ -197,9 +229,14 @@ class AppSectionController extends Controller
         ]);
     }
 
-    protected function transformSong(Request $request, Song $song): array
+    protected function transformSong(
+        Request $request,
+        Song $song,
+        array $likedIds = []
+    ): array
     {
         $baseUrl = $request->getSchemeAndHttpHost();
+        $isLiked = in_array($song->id, $likedIds);
 
         return [
             'id' => $song->id,
@@ -213,12 +250,11 @@ class AppSectionController extends Controller
                 ? $baseUrl . '/storage/' . ltrim($song->cover_image, '/')
                 : null,
             'created_at' => optional($song->created_at)->toIso8601String(),
-            'is_liked' => false,
-            'liked' => 0,
+            'is_liked' => (bool) $isLiked,
+            'liked' => $isLiked ? 1 : 0,
             'status' => $song->status,
             'rejection_reason' => $song->rejection_reason,
         ];
     }
-
 
 }

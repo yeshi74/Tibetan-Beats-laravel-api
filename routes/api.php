@@ -71,13 +71,9 @@ Route::get('/genres/featured', [GenreController::class, 'featured']);
 
 Route::get('/music-genres', [SongApiController::class, 'allGenres']);
 
-//home page admin control
-Route::get('/home/sections', [AppSectionController::class, 'home']);
-
-//homepage top greeing
+//homepage top greeting
 Route::get('/settings', [AppSettingController::class, 'index']);
 
-Route::get('/search/sections', [AppSectionController::class, 'search']);
 
 
 
@@ -209,6 +205,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/artist-claims',[ArtistClaimController::class, 'store']);
 
     Route::get('/artist-status', [ArtistController::class, 'artistStatus']);
+
+    Route::get('/search/sections', [AppSectionController::class, 'search']);
+
+    //home page admin control
+    Route::get('/home/sections', [AppSectionController::class, 'home']);
+
 
 
     
