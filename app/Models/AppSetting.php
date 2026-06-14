@@ -9,5 +9,6 @@ class AppSetting extends Model
     protected $fillable = [
         'key',
         'value',
+        'limit',
     ];
 }

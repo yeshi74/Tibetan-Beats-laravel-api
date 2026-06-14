@@ -52,56 +52,69 @@
 
             <select
                 name="section_type"
+                id="section_type"
                 class="form-control"
                 required
+                onchange="
+                    document.getElementById('genre-wrapper').style.display =
+                        this.value === 'genre' ? 'block' : 'none';
+
+                    document.getElementById('playlist-wrapper').style.display =
+                        this.value === 'playlist' ? 'block' : 'none';
+                "
             >
-                <option value="popular_artists"
-                    {{ $appSection->section_type == 'popular_artists' ? 'selected' : '' }}>
-                    Popular Artists
-                </option>
+    <optgroup label="Home">
+        <option value="popular_artists"
+            {{ $appSection->section_type == 'popular_artists' ? 'selected' : '' }}>
+            Popular Artists
+        </option>
 
-                <option value="latest_songs"
-                    {{ $appSection->section_type == 'latest_songs' ? 'selected' : '' }}>
-                    Latest Songs
-                </option>
+        <option value="latest_songs"
+            {{ $appSection->section_type == 'latest_songs' ? 'selected' : '' }}>
+            Latest Songs
+        </option>
 
-                <option value="trending_songs"
-                    {{ $appSection->section_type == 'trending_songs' ? 'selected' : '' }}>
-                    Trending Songs
-                </option>
+        <option value="trending_songs"
+            {{ $appSection->section_type == 'trending_songs' ? 'selected' : '' }}>
+            Trending Songs
+        </option>
 
-                <option value="most_liked_songs"
-                    {{ $appSection->section_type == 'most_liked_songs' ? 'selected' : '' }}>
-                    Most Liked Songs
-                </option>
+        <option value="most_liked_songs"
+            {{ $appSection->section_type == 'most_liked_songs' ? 'selected' : '' }}>
+            Most Liked Songs
+        </option>
 
-                <option value="genre"
-                    {{ $appSection->section_type == 'genre' ? 'selected' : '' }}>
-                    Genre
-                </option>
+        <option value="genre"
+            {{ $appSection->section_type == 'genre' ? 'selected' : '' }}>
+            Genre
+        </option>
 
-                <option value="playlist"
-                    {{ $appSection->section_type == 'playlist' ? 'selected' : '' }}>
-                    Playlist
-                </option>
-                <option value="verified_artists"
-                    {{ $appSection->section_type == 'verified_artists' ? 'selected' : '' }}>
-                    Verified Artists
-                </option>
+        <option value="playlist"
+            {{ $appSection->section_type == 'playlist' ? 'selected' : '' }}>
+            Playlist
+        </option>
+    </optgroup>
 
-                <option value="featured_genres"
-                    {{ $appSection->section_type == 'featured_genres' ? 'selected' : '' }}>
-                    Featured Genres
-                </option>
+    <optgroup label="Search">
+        <option value="verified_artists"
+            {{ $appSection->section_type == 'verified_artists' ? 'selected' : '' }}>
+            Verified Artists
+        </option>
 
-                <option value="featured_playlists"
-                    {{ $appSection->section_type == 'featured_playlists' ? 'selected' : '' }}>
-                    Featured Playlists
-                </option>
-            </select>
+        <option value="featured_genres"
+            {{ $appSection->section_type == 'featured_genres' ? 'selected' : '' }}>
+            Featured Genres
+        </option>
+
+        <option value="featured_playlists"
+            {{ $appSection->section_type == 'featured_playlists' ? 'selected' : '' }}>
+            Featured Playlists
+        </option>
+    </optgroup>
+</select>
         </div>
 
-        <div class="mb-3">
+        <div class="mb-3" id="genre-wrapper" style="display:none;">
             <label class="form-label">Genre</label>
 
             <select
@@ -121,7 +134,7 @@
             </select>
         </div>
 
-        <div class="mb-3">
+        <div class="mb-3" id="playlist-wrapper" style="display:none;">
             <label class="form-label">Playlist</label>
 
             <select
@@ -171,6 +184,19 @@
             </label>
         </div>
 
+        <div class="mb-3">
+            <label class="form-label">Items Limit</label>
+
+            <input
+                type="number"
+                name="limit"
+                class="form-control"
+                value="{{ old('limit', $appSection->limit) }}"
+                min="1"
+                max="100"
+            >
+        </div>
+
         <button
             type="submit"
             class="btn btn-success"
@@ -188,4 +214,6 @@
     </form>
 
 </div>
+
+
 @endsection

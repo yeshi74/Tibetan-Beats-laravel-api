@@ -39,6 +39,7 @@ class AppSectionController extends Controller
             'playlist_id' => 'nullable|exists:playlists,id',
             'sort_order' => 'required|integer',
             'is_active' => 'nullable|boolean',
+            'limit' => 'required|integer|min:1|max:100',
         ]);
 
         $validated['is_active'] = $request->has('is_active');
@@ -84,6 +85,7 @@ class AppSectionController extends Controller
             'playlist_id' => 'nullable|exists:playlists,id',
             'sort_order' => 'required|integer',
             'is_active' => 'nullable|boolean',
+            'limit' => 'required|integer|min:1|max:100',
         ]);
 
         $validated['is_active'] = $request->has('is_active');

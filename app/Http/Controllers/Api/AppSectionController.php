@@ -18,20 +18,12 @@ class AppSectionController extends Controller
 
         $user = $request->user();
 
-        \Log::info('HOME USER', [
-    'user' => $request->user()?->id,
-]);
-
         $likedIds = $user
             ? DB::table('liked_songs')
                 ->where('user_id', $user->id)
                 ->pluck('song_id')
                 ->toArray()
             : [];
-
-            \Log::info('LIKED IDS', [
-    'likedIds' => $likedIds,
-]);
 
         $sections = AppSection::with([
             'genre:id,name',
@@ -72,7 +64,7 @@ class AppSectionController extends Controller
                         ? Artist::withCount('followers')
                             ->where('verified', true)
                             ->orderByDesc('followers_count')
-                            ->take(10)
+                            ->take($section->limit)
                             ->get()
                             ->map(function ($artist) {
                                 return [
@@ -93,7 +85,7 @@ class AppSectionController extends Controller
                         'playlist' => $section->playlist
                             ? $section->playlist->songs()
                                 ->latest()
-                                ->take(10)
+                                ->take($section->limit)
                                 ->get()
                                 ->map(fn ($song) => $this->transformSong($request, $song, $likedIds))
                                 ->values()
@@ -102,20 +94,20 @@ class AppSectionController extends Controller
                         'genre' => $section->genre
                             ? Song::where('genre_id', $section->genre->id)
                                 ->latest()
-                                ->take(10)
+                                ->take($section->limit)
                                 ->get()
                                 ->map(fn ($song) => $this->transformSong($request, $song, $likedIds))
                                 ->values()
                             : [],
 
                         'latest_songs' => Song::latest()
-                            ->take(10)
+                            ->take($section->limit)
                             ->get()
                             ->map(fn ($song) => $this->transformSong($request, $song, $likedIds))
                             ->values(),
 
                         'trending_songs' => Song::orderByDesc('play_count')
-                            ->take(12)
+                            ->take($section->limit)
                             ->get()
                             ->map(fn ($song) => $this->transformSong($request, $song, $likedIds))
                             ->values(),
@@ -125,7 +117,7 @@ class AppSectionController extends Controller
                             ->selectRaw('COUNT(liked_songs.id) as likes_count')
                             ->groupBy('songs.id')
                             ->orderByDesc('likes_count')
-                            ->take(15)
+                            ->take($section->limit)
                             ->get()
                             ->map(fn ($song) => $this->transformSong($request, $song, $likedIds))
                             ->values(),
@@ -171,7 +163,7 @@ class AppSectionController extends Controller
                     'artists' => $section->section_type === 'verified_artists'
                         ? Artist::where('verified', true)
                             ->latest()
-                            ->take(10)
+                            ->take($section->limit)
                             ->get()
                             ->map(function ($artist) {
                                 return [
@@ -215,7 +207,7 @@ class AppSectionController extends Controller
                     'songs' => $section->section_type === 'playlist' && $section->playlist
                         ? $section->playlist->songs()
                             ->latest()
-                            ->take(10)
+                            ->take($section->limit)
                             ->get()
                             ->map(fn ($song) => $this->transformSong(
                                 $request,

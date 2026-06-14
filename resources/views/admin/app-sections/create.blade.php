@@ -38,27 +38,37 @@
                 id="section_type"
                 class="form-control"
                 required
+                onchange="
+                    document.getElementById('genre-wrapper').style.display =
+                        this.value === 'genre' ? 'block' : 'none';
+
+                    document.getElementById('playlist-wrapper').style.display =
+                        this.value === 'playlist' ? 'block' : 'none';
+                "
             >
-                <option value="popular_artists">Popular Artists</option>
-                <option value="latest_songs">Latest Songs</option>
-                <option value="trending_songs">Trending Songs</option>
-                <option value="most_liked_songs">Most Liked Songs</option>
-                <option value="genre">Genre</option>
-                <option value="playlist">Playlist</option>
-                <option value="verified_artists">Verified Artists</option>
-                <option value="featured_genres">Featured Genres</option>
-                <option value="featured_playlists">Featured Playlists</option>
+                <optgroup label="Home">
+                    <option value="popular_artists">Popular Artists</option>
+                    <option value="latest_songs">Latest Songs</option>
+                    <option value="trending_songs">Trending Songs</option>
+                    <option value="most_liked_songs">Most Liked Songs</option>
+                    <option value="genre">Genre</option>
+                    <option value="playlist">Playlist</option>
+                </optgroup>
+
+                <optgroup label="Search">
+                    <option value="verified_artists">Verified Artists</option>
+                    <option value="featured_genres">Featured Genres</option>
+                    <option value="featured_playlists">Featured Playlists</option>
+                </optgroup>
             </select>
         </div>
 
-        <div
-            class="mb-3">
+        <div class="mb-3" id="genre-wrapper" style="display:none;">
             <label class="form-label">Genre</label>
 
-            <select
-                name="genre_id"
-                class="form-control"
-            >
+            <select name="genre_id" class="form-control">
+                <option value="">-- Select Genre --</option>
+
                 @foreach($genres as $genre)
                     <option value="{{ $genre->id }}">
                         {{ $genre->name }}
@@ -67,14 +77,12 @@
             </select>
         </div>
 
-        <div
-            class="mb-3">
+        <div class="mb-3" id="playlist-wrapper" style="display:none;">
             <label class="form-label">Playlist</label>
 
-            <select
-                name="playlist_id"
-                class="form-control"
-            >
+            <select name="playlist_id" class="form-control">
+                <option value="">-- Select Playlist --</option>
+
                 @foreach($playlists as $playlist)
                     <option value="{{ $playlist->id }}">
                         {{ $playlist->name }}
@@ -113,10 +121,20 @@
             </label>
         </div>
 
-        <button
-            type="submit"
-            class="btn btn-success"
-        >
+        <div class="mb-3">
+            <label class="form-label">Items Limit</label>
+
+            <input
+                type="number"
+                name="limit"
+                class="form-control"
+                value="{{ old('limit', 10) }}"
+                min="1"
+                max="100"
+            >
+        </div>
+
+        <button type="submit" class="btn btn-success">
             Save
         </button>
 
@@ -130,5 +148,6 @@
     </form>
 
 </div>
-@endsection
 
+
+@endsection

@@ -25,6 +25,8 @@
                 <th>Title</th>
                 <th>Type</th>
                 <th>Reference</th>
+                <th>Limit</th>
+                <th>Preview</th>
                 <th>Active</th>
                 <th width="150">Actions</th>
             </tr>
@@ -54,6 +56,44 @@
                         —
                     @endif
                 </td>
+
+                <td>{{ $section->limit }}</td>
+
+                @php
+                    $preview = match($section->section_type) {
+
+                        'popular_artists' =>
+                            "Top {$section->limit} verified artists",
+
+                        'latest_songs' =>
+                            "Latest {$section->limit} songs",
+
+                        'trending_songs' =>
+                            "Top {$section->limit} by plays",
+
+                        'most_liked_songs' =>
+                            "Top {$section->limit} liked songs",
+
+                        'genre' =>
+                            "Genre: " . optional($section->genre)->name,
+
+                        'playlist' =>
+                            "Playlist: " . optional($section->playlist)->name,
+
+                        'verified_artists' =>
+                            "Verified artists",
+
+                        'featured_genres' =>
+                            "Featured genres",
+
+                        'featured_playlists' =>
+                            "Featured playlists",
+
+                        default => '-',
+                    };
+                    @endphp
+
+                    <td>{{ $preview }}</td>
 
                 <td>
                     @if($section->is_active)
