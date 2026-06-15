@@ -10,6 +10,7 @@ use App\Models\Artist;
 use App\Models\Genre;
 use App\Models\Playlist;
 use Illuminate\Support\Facades\DB;
+use App\Services\SongTransformer;
 
 class AppSectionController extends Controller
 {
@@ -87,7 +88,7 @@ class AppSectionController extends Controller
                                 ->latest()
                                 ->take($section->limit)
                                 ->get()
-                                ->map(fn ($song) => $this->transformSong($request, $song, $likedIds))
+                                ->map(fn ($song) => SongTransformer::transform($request, $song, $likedIds))
                                 ->values()
                             : [],
 
@@ -96,20 +97,20 @@ class AppSectionController extends Controller
                                 ->latest()
                                 ->take($section->limit)
                                 ->get()
-                                ->map(fn ($song) => $this->transformSong($request, $song, $likedIds))
+                                ->map(fn ($song) => SongTransformer::transform($request, $song, $likedIds))
                                 ->values()
                             : [],
 
                         'latest_songs' => Song::latest()
                             ->take($section->limit)
                             ->get()
-                            ->map(fn ($song) => $this->transformSong($request, $song, $likedIds))
+                            ->map(fn ($song) => SongTransformer::transform($request, $song, $likedIds))
                             ->values(),
 
                         'trending_songs' => Song::orderByDesc('play_count')
                             ->take($section->limit)
                             ->get()
-                            ->map(fn ($song) => $this->transformSong($request, $song, $likedIds))
+                            ->map(fn ($song) => SongTransformer::transform($request, $song, $likedIds))
                             ->values(),
 
                         'most_liked_songs' => Song::select('songs.*')
@@ -119,7 +120,7 @@ class AppSectionController extends Controller
                             ->orderByDesc('likes_count')
                             ->take($section->limit)
                             ->get()
-                            ->map(fn ($song) => $this->transformSong($request, $song, $likedIds))
+                            ->map(fn ($song) => SongTransformer::transform($request, $song, $likedIds))
                             ->values(),
 
                         default => [],
@@ -209,7 +210,7 @@ class AppSectionController extends Controller
                             ->latest()
                             ->take($section->limit)
                             ->get()
-                            ->map(fn ($song) => $this->transformSong(
+                            ->map(fn ($song) => SongTransformer::transform(
                                 $request,
                                 $song,
                                 $likedIds
@@ -221,32 +222,6 @@ class AppSectionController extends Controller
         ]);
     }
 
-    protected function transformSong(
-        Request $request,
-        Song $song,
-        array $likedIds = []
-    ): array
-    {
-        $baseUrl = $request->getSchemeAndHttpHost();
-        $isLiked = in_array($song->id, $likedIds);
 
-        return [
-            'id' => $song->id,
-            'title' => $song->title,
-            'artist' => $song->artist,
-            'artist_id' => $song->artist_id,
-            'genre_id' => $song->genre_id,
-            'genre' => $song->genre ? $song->genre->name : null,
-            'audio_url' => $baseUrl . '/api/songs/stream/' . $song->id,
-            'cover_image_url' => $song->cover_image
-                ? $baseUrl . '/storage/' . ltrim($song->cover_image, '/')
-                : null,
-            'created_at' => optional($song->created_at)->toIso8601String(),
-            'is_liked' => (bool) $isLiked,
-            'liked' => $isLiked ? 1 : 0,
-            'status' => $song->status,
-            'rejection_reason' => $song->rejection_reason,
-        ];
-    }
 
 }

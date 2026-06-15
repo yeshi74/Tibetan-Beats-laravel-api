@@ -13,6 +13,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 use App\Models\RecentlyPlayed;
 use App\Models\Notification;
 use App\Models\Genre;
+use App\Services\SongTransformer;
 
 class SongApiController extends Controller
 {
@@ -49,38 +50,7 @@ class SongApiController extends Controller
         }
     }
 
-    /**
-     * Build song payload (absolute URLs, created_at ISO, like flag).
-     */
-    protected function transformSong(Request $request, Song $song, array $likedIds = [])
-    {
-        $baseUrl = $request->getSchemeAndHttpHost();
-        $isLiked = in_array($song->id, $likedIds);
-
-        return [
-            'id'              => $song->id,
-            'title'           => $song->title,
-            'artist'          => $song->artist,
-            'artist_id'       => $song->artist_id,
-            'genre_id'        => $song->genre_id,
-            'genre'           => $song->genre ? $song->genre->name : null,
-            'audio_url'       => $baseUrl . '/api/songs/stream/' . $song->id,
-            'cover_image_url' => $song->cover_image ? $baseUrl . '/storage/' . ltrim($song->cover_image, '/') : null,
-            'created_at'      => optional($song->created_at)->toIso8601String(),
-            // compatibility: boolean and numeric forms
-            'is_liked'        => (bool) $isLiked,
-            'liked'           => $isLiked ? 1 : 0,
-            'status'          => $song->status,
-            'rejection_reason' => $song->rejection_reason,
-        ];
-    }
-
-    /**
-     * Apply visibility filter:
-     * - guests: published only
-     * - logged in: published OR their own uploads
-     * - admins: everything
-     */
+  
     protected function visibilityQuery($query, $user)
     {
         if ($this->isAdmin($user)) {
@@ -115,23 +85,27 @@ class SongApiController extends Controller
         $songs = Song::where('status', 'published')
             ->latest()
             ->get()
-            ->map(function ($song) use ($request, $likedIds, $user) {
-                $isLiked = in_array($song->id, $likedIds, true);
-
-                return [
-                    'id'              => $song->id,
-                    'title'           => $song->title,
-                    'artist'          => $song->artist,
-                    'artist_id'       => $song->artist_id,
-                    'genre_id'        => $song->genre_id,
-                    'genre'           => $song->genre ? $song->genre->name : null,
-                    'audio_url'       => $request->getSchemeAndHttpHost() . '/api/songs/stream/' . $song->id,
-                    'cover_image_url' => $song->cover_image ? $request->getSchemeAndHttpHost() . '/storage/' . ltrim($song->cover_image, '/') : null,
-                    'created_at'      => optional($song->created_at)->toIso8601String(),
-                    'is_liked'        => (bool) $isLiked,
-                    'liked'           => $isLiked ? 1 : 0,
-                    'download_url'    => ($user && ($user->is_premium ?? false)) ? $request->getSchemeAndHttpHost() . '/api/songs/' . $song->id . '/download' : null,
-                ];
+            ->map(function ($song) use (
+                $request,
+                $likedIds,
+                $user
+            ) {
+                return SongTransformer::transform(
+                    $request,
+                    $song,
+                    $likedIds,
+                    [
+                        'download_url' => (
+                            $user &&
+                            ($user->is_premium ?? false)
+                        )
+                            ? $request->getSchemeAndHttpHost()
+                                . '/api/songs/'
+                                . $song->id
+                                . '/download'
+                            : null,
+                    ]
+                );
             });
 
         return response()->json(['status' => 'success', 'data' => $songs]);
@@ -273,7 +247,11 @@ class SongApiController extends Controller
         $songs = Song::orderByDesc('play_count')
             ->take(12)
             ->get()
-            ->map(fn($s) => $this->transformSong($request, $s, $likedIds));
+            ->map(fn($s) => SongTransformer::transform(
+                $request,
+                $s,
+                $likedIds
+            ));
 
         return response()->json([
             'status' => 'success',
@@ -365,7 +343,11 @@ public function search(Request $request)
     $songs = $this->visibilityQuery($base, $user)
         ->orderBy('created_at', 'desc')
         ->get()
-        ->map(fn ($s) => $this->transformSong($request, $s, $likedIds));
+        ->map(fn ($s) => SongTransformer::transform(
+            $request,
+            $s,
+            $likedIds
+        ));
 
     return response()->json(['status' => 'success', 'data' => $songs]);
 }
@@ -393,8 +375,12 @@ public function search(Request $request)
 
         return response()->json([
             'status' => 'success',
-            'data'   => $this->transformSong($request, $song, $likedIds),
-        ]);
+            'data'   => SongTransformer::transform(
+            $request,
+            $song,
+            $likedIds
+        ),
+                ]);
     }
 
     /**
@@ -436,7 +422,11 @@ public function search(Request $request)
         return response()->json([
             'status'  => 'success',
             'message' => 'Song uploaded successfully',
-            'data'    => $this->transformSong($request, $song, []),
+            'data' => SongTransformer::transform(
+                $request,
+                $song,
+                []
+            ),
         ], 201);
     }
 
@@ -475,7 +465,11 @@ public function search(Request $request)
         return response()->json([
             'status'  => 'success',
             'message' => 'Song updated successfully',
-            'data'    => $this->transformSong($request, $song, []),
+            'data' => SongTransformer::transform(
+                $request,
+                $song,
+                []
+            ),
         ]);
     }
 
@@ -507,7 +501,11 @@ public function search(Request $request)
             : [];
 
         $songs = Song::orderBy('created_at', 'desc')->take(15)->get()
-            ->map(fn ($s) => $this->transformSong($request, $s, $likedIds));
+            ->map(fn ($s) => SongTransformer::transform(
+                $request,
+                $s,
+                $likedIds
+            ));
 
         return response()->json(['status' => 'success', 'data' => $songs]);
     }
@@ -526,7 +524,11 @@ public function search(Request $request)
             ->latest()
             ->take(25)
             ->get()
-            ->map(fn ($s) => $this->transformSong($request, $s, $likedIds));
+            ->map(fn ($s) => SongTransformer::transform(
+                $request,
+                $s,
+                $likedIds
+            ));
 
         return response()->json([
             'status' => 'success',
@@ -545,7 +547,11 @@ public function search(Request $request)
             ->latest()
             ->take(25)
             ->get()
-            ->map(fn ($s) => $this->transformSong($request, $s, $likedIds));
+            ->map(fn ($s) => SongTransformer::transform(
+                $request,
+                $s,
+                $likedIds
+            ));
 
         return response()->json([
             'status' => 'success',
@@ -625,7 +631,11 @@ public function search(Request $request)
             ->orderByDesc('liked_songs.created_at')
             ->select('songs.*')
             ->get()
-            ->map(fn ($s) => $this->transformSong($request, $s, $likedIds));
+            ->map(fn ($s) => SongTransformer::transform(
+                $request,
+                $s,
+                $likedIds
+            ));
 
         return response()->json(['status' => 'success', 'songs' => $songs]);
     }
@@ -647,7 +657,11 @@ public function search(Request $request)
             ->orderByDesc('likes_count')
             ->take(15)
             ->get()
-            ->map(fn ($s) => $this->transformSong($request, $s, $likedIds));
+            ->map(fn ($s) => SongTransformer::transform(
+                $request,
+                $s,
+                $likedIds
+            ));
 
         return response()->json(['status' => 'success', 'data' => $songs]);
     }
@@ -707,7 +721,7 @@ public function search(Request $request)
 
         return response()->json([
             'songs' => $songs->map(function ($song) use ($request, $likedIds) {
-                return $this->transformSong(
+                return SongTransformer::transform(
                     $request,
                     $song,
                     $likedIds
@@ -731,7 +745,7 @@ public function search(Request $request)
             ->latest('created_at')
             ->take(15)
             ->get()
-            ->map(fn ($s) => $this->transformSong(
+            ->map(fn ($s) => SongTransformer::transform(
                 $request,
                 $s,
                 $likedIds
