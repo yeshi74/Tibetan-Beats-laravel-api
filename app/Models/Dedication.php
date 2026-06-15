@@ -26,6 +26,11 @@ class Dedication extends Model
 
     protected $appends = ['cover_image_url'];
 
+    public function comments()
+    {
+        return $this->hasMany(DedicationComment::class);
+    }
+
     /* ----- Scopes ----- */
     public function scopeApproved(Builder $query): Builder
     {

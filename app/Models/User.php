@@ -67,6 +67,11 @@ class User extends Authenticatable
         return $this->belongsTo(Role::class, 'role_id');
     }
 
+    public function dedicationComments()
+    {
+        return $this->hasMany(DedicationComment::class);
+    }
+
     /**
      * Check user has a role by name.
      */

@@ -34,7 +34,11 @@ class DedicationController extends Controller
                 $with[] = 'toUser:id,name,profile_image';
             }
 
-            $query = Dedication::with($with)->withCount('likes');
+            $query = Dedication::with($with)
+                ->withCount([
+                    'likes',
+                    'comments',
+                ]);
             if ($sort === 'popular') {
                 $query->orderByDesc('likes_count')
                       ->orderByDesc('created_at');
@@ -109,8 +113,9 @@ class DedicationController extends Controller
                             'name'              => $d->toUser->name,
                             'profile_image_url' => $d->toUser->profile_image_url,
                         ] : null,
-                        'likes_count' => $d->likes_count,
-                        'is_liked'    => $user ? $d->likedBy($user) : false,
+                        'likes_count'    => $d->likes_count,
+                        'comments_count' => $d->comments_count,
+                        'is_liked'       => $user ? $d->likedBy($user) : false,
                     ];
                 }),
                 'meta' => [
@@ -241,7 +246,10 @@ class DedicationController extends Controller
                 $with[] = 'toUser:id,name,profile_image_url';
             }
 
-            $d->load($with)->loadCount('likes');
+            $d->load($with)->loadCount([
+                'likes',
+                'comments',
+            ]);
 
             return response()->json([
                 'status'    => 'success',
@@ -271,6 +279,7 @@ class DedicationController extends Controller
                         'profile_image_url' => $d->toUser->profile_image_url,
                     ] : null,
                     'likes_count' => $d->likes_count,
+                    'comments_count' => $d->comments_count,
                     'is_liked'    => false,
                 ],
             ], 201);

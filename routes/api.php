@@ -26,6 +26,7 @@ use App\Http\Controllers\Api\SongReportController;
 use App\Http\Controllers\Api\ArtistClaimController;
 use App\Http\Controllers\Api\AppSectionController;
 use App\Http\Controllers\Api\AppSettingController;
+use App\Http\Controllers\Api\DedicationCommentController;
 
 /* -------------------- Public (no auth) -------------------- */
 
@@ -73,6 +74,8 @@ Route::get('/music-genres', [SongApiController::class, 'allGenres']);
 
 //homepage top greeting
 Route::get('/settings', [AppSettingController::class, 'index']);
+
+Route::get('/dedications/{dedication}/comments',[DedicationCommentController::class, 'index']);
 
 
 
@@ -212,6 +215,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/home/sections', [AppSectionController::class, 'home']);
 
     Route::get('/admin/dashboard',[AdminDashboardController::class, 'index']);
+
+    Route::post('/dedications/{dedication}/comments',[DedicationCommentController::class, 'store']);
+
+    Route::delete('/comments/{comment}',[DedicationCommentController::class, 'destroy']);
 
 
 
