@@ -17,6 +17,8 @@ use App\Http\Controllers\Admin\AdminArtistClaimController;
 use App\Http\Controllers\Admin\ArtistAdminController;
 use App\Http\Controllers\Admin\AppSectionController;
 use App\Http\Controllers\Admin\AppSettingController;
+use App\Http\Controllers\Admin\AdminDashboardController;
+use App\Http\Controllers\Admin\AdminHomeController;
 
 
 Route::get('/', function () {
@@ -39,9 +41,7 @@ Route::middleware(['auth', 'is_admin'])
     ->name('admin.')
     ->group(function () {
         // 🔹 Admin landing/dashboard
-        Route::get('/', function () {
-            return view('admin.spa-dashboard');
-        })->name('dashboard');
+        Route::get('/', [AdminHomeController::class, 'index'])->name('dashboard');
 
         Route::resource('albums', AlbumController::class);
         Route::resource('songs', SongAdminController::class);
@@ -123,6 +123,8 @@ Route::middleware(['auth', 'is_admin'])
 
         Route::get('/settings',[AppSettingController::class, 'edit'])->name('settings.edit');
         Route::post('/settings',[AppSettingController::class, 'update'])->name('settings.update');
+
+        Route::get('/dashboard',[AdminDashboardController::class, 'index'])->name('dashboard');
 
 
     });

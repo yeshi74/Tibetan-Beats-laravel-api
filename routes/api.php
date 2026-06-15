@@ -2,7 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
-
+use App\Http\Controllers\Api\AdminDashboardController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\SongApiController;
 use App\Http\Controllers\Api\UserController;
@@ -199,7 +199,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/account/delete',[AccountController::class, 'deleteAccount']);
 
     //song report
-    Route::middleware('auth:sanctum')->post('/song-reports',[SongReportController::class, 'store']);
+    Route::post('/song-reports',[SongReportController::class, 'store']);
 
     //claim profile
     Route::post('/artist-claims',[ArtistClaimController::class, 'store']);
@@ -210,6 +210,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     //home page admin control
     Route::get('/home/sections', [AppSectionController::class, 'home']);
+
+    Route::get('/admin/dashboard',[AdminDashboardController::class, 'index']);
 
 
 

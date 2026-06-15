@@ -107,6 +107,105 @@
       <div id="spa-dashboard" class="grid grid-cols-3 gap-6">
         <div class="col-span-3 bg-gray-800 p-6 rounded shadow">
           <h2 class="text-xl font-semibold text-white mb-2">Welcome to Admin Panel</h2>
+
+          <div class="grid grid-cols-4 gap-4 mb-6">
+
+        <div class="bg-gray-700 p-4 rounded">
+            <div class="text-sm text-gray-400">Users</div>
+            <div class="text-3xl font-bold">{{ $users }}</div>
+        </div>
+
+        <div class="bg-gray-700 p-4 rounded">
+            <div class="text-sm text-gray-400">Songs</div>
+            <div class="text-3xl font-bold">{{ $songs }}</div>
+        </div>
+
+        <div class="bg-cyan-700 p-4 rounded">
+          <div class="text-sm text-cyan-100">Total Plays</div>
+          <div class="text-3xl font-bold">
+              {{ number_format($totalPlays) }}
+          </div>
+      </div>
+
+        <div class="bg-gray-700 p-4 rounded">
+            <div class="text-sm text-gray-400">Artists</div>
+            <div class="text-3xl font-bold">{{ $artists }}</div>
+        </div>
+
+        <div class="bg-gray-700 p-4 rounded">
+            <div class="text-sm text-gray-400">Playlists</div>
+            <div class="text-3xl font-bold">{{ $playlists }}</div>
+        </div>
+
+    </div>
+
+    <div class="grid grid-cols-4 gap-4 mb-6">
+
+      <div class="bg-yellow-700 p-4 rounded">
+          <div class="text-sm text-yellow-100">Pending Songs</div>
+          <div class="text-3xl font-bold">
+              {{ $pendingSongs }}
+          </div>
+      </div>
+
+      <div class="bg-red-700 p-4 rounded">
+          <div class="text-sm text-red-100">Pending Artist Claims</div>
+          <div class="text-3xl font-bold">
+              {{ $pendingClaims }}
+          </div>
+      </div>
+
+      <div class="bg-indigo-700 p-4 rounded">
+          <div class="text-sm text-indigo-100">Dedications</div>
+          <div class="text-3xl font-bold">
+              {{ $dedications }}
+          </div>
+      </div>
+
+      <div class="bg-pink-700 p-4 rounded">
+          <div class="text-sm text-pink-100">Unclaimed Artists</div>
+          <div class="text-3xl font-bold">
+              {{ $unclaimedArtists }}
+          </div>
+      </div>
+
+  </div>
+
+  <h3 class="text-lg font-semibold text-white mt-6 mb-3">
+      System Health
+  </h3>
+
+  <div class="grid grid-cols-4 gap-4 mb-6">
+
+      <div class="bg-gray-700 p-4 rounded">
+          <div class="text-sm text-gray-400">Missing Covers</div>
+          <div class="text-3xl font-bold">
+              {{ $songsMissingCover }}
+          </div>
+      </div>
+
+      <div class="bg-gray-700 p-4 rounded">
+          <div class="text-sm text-gray-400">Missing Audio</div>
+          <div class="text-3xl font-bold">
+              {{ $songsMissingAudio }}
+          </div>
+      </div>
+
+      <div class="bg-gray-700 p-4 rounded">
+          <div class="text-sm text-gray-400">Empty Playlists</div>
+          <div class="text-3xl font-bold">
+              {{ $emptyPlaylists }}
+          </div>
+      </div>
+
+      <div class="bg-gray-700 p-4 rounded">
+          <div class="text-sm text-gray-400">Unclaimed Artists</div>
+          <div class="text-3xl font-bold">
+              {{ $unclaimedArtists }}
+          </div>
+      </div>
+
+  </div>
           
 
           <div class="grid grid-cols-3 gap-4">
