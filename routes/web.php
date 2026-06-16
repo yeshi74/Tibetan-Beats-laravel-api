@@ -140,6 +140,9 @@ Route::middleware(['auth','role:admin,moderator'])
         Route::patch('dedications/bulk/reject', [DedicationModerationController::class, 'bulkReject'])
             ->name('dedications.bulkReject');
 
+        Route::delete('dedications/bulk/delete',[DedicationModerationController::class, 'bulkDelete'])
+            ->name('dedications.bulkDelete');
+
         // (the others)
 
         Route::get('dedications/create',[DedicationModerationController::class, 'create'])

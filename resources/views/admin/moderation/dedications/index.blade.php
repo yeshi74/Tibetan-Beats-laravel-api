@@ -2,21 +2,123 @@
   <div class="max-w-7xl mx-auto p-6">
     <h1 class="text-2xl font-bold text-gray-100 mb-6">Dedications Moderation</h1>
 
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+
+    <div class="bg-yellow-700 p-4 rounded-lg">
+        <div class="text-yellow-100 text-sm">
+            Pending
+        </div>
+
+        <div class="text-3xl font-bold text-white">
+            {{ $stats['pending'] }}
+        </div>
+    </div>
+
+    <div class="bg-green-700 p-4 rounded-lg">
+        <div class="text-green-100 text-sm">
+            Approved
+        </div>
+
+        <div class="text-3xl font-bold text-white">
+            {{ $stats['approved'] }}
+        </div>
+    </div>
+
+    <div class="bg-red-700 p-4 rounded-lg">
+        <div class="text-red-100 text-sm">
+            Rejected
+        </div>
+
+        <div class="text-3xl font-bold text-white">
+            {{ $stats['rejected'] }}
+        </div>
+    </div>
+
+    <div class="bg-blue-700 p-4 rounded-lg">
+        <div class="text-blue-100 text-sm">
+            Comments
+        </div>
+
+        <div class="text-3xl font-bold text-white">
+            {{ $stats['comments'] }}
+        </div>
+    </div>
+
+</div>
+
     {{-- status filter --}}
-    <form method="get" class="mb-5">
-      <label class="block text-sm text-gray-300 mb-2">Filter by status</label>
-      <select name="status"
-              class="w-full sm:w-80 bg-gray-800 text-gray-100 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              onchange="this.form.submit()">
-        <option value="" {{ request('status')==='' ? 'selected' : '' }}>All</option>
-        <option value="pending"  {{ request('status')==='pending'  ? 'selected' : '' }}>Pending</option>
-        <option value="approved" {{ request('status')==='approved' ? 'selected' : '' }}>Approved</option>
-        <option value="rejected" {{ request('status')==='rejected' ? 'selected' : '' }}>Rejected</option>
-      </select>
-    </form>
+    <form method="get" class="mb-5 flex flex-wrap gap-3 items-end">
+
+      <div>
+          <label class="block text-sm text-gray-300 mb-2">
+              Search
+          </label>
+
+          <input
+              type="text"
+              name="search"
+              value="{{ request('search') }}"
+              placeholder="User, recipient or song..."
+              class="w-80 bg-gray-800 text-gray-100 border border-gray-600 rounded-lg px-3 py-2">
+      </div>
+
+      <div>
+          <label class="block text-sm text-gray-300 mb-2">
+              Status
+          </label>
+
+          <select
+              name="status"
+              class="bg-gray-800 text-gray-100 border border-gray-600 rounded-lg px-3 py-2">
+
+              <option value="">All</option>
+
+              <option value="pending"
+                  {{ request('status')==='pending' ? 'selected' : '' }}>
+                  Pending
+              </option>
+
+              <option value="approved"
+                  {{ request('status')==='approved' ? 'selected' : '' }}>
+                  Approved
+              </option>
+
+              <option value="rejected"
+                  {{ request('status')==='rejected' ? 'selected' : '' }}>
+                  Rejected
+              </option>
+
+          </select>
+      </div>
+
+      <button
+          type="submit"
+          class="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500">
+          Search
+      </button>
+
+  </form>
 
     {{-- bulk actions --}}
     <div class="flex flex-wrap items-center gap-3 mb-4">
+
+      <form id="bulk-delete"
+      method="post"
+      action="{{ route('admin.moderation.dedications.bulkDelete') }}"
+      onsubmit="
+        injectIds(this);
+        return confirm('Delete selected dedications permanently?');
+      ">
+
+      @csrf
+      @method('DELETE')
+
+      <button type="submit"
+        class="px-4 py-2 rounded-lg bg-gray-900 text-white hover:bg-black">
+          Delete Selected
+      </button>
+
+  </form>
 
       <a href="{{ route('admin.moderation.dedications.create') }}"
         class="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500">
@@ -167,5 +269,7 @@
     document.getElementById('bulk-approve')?.addEventListener('submit', function () {
       injectIds(this);
     });
+
+
   </script>
 </x-app-layout>

@@ -25,9 +25,37 @@ class DedicationModerationController extends Controller
             $q->where('status', $status);
         }
 
+        $search = trim($req->get('search', ''));
+
+        if ($search !== '') {
+
+            $q->where(function ($query) use ($search) {
+
+                $query->where('to_name', 'like', "%{$search}%")
+
+                    ->orWhereHas('user', function ($q) use ($search) {
+                        $q->where('name', 'like', "%{$search}%");
+                    })
+
+                    ->orWhereHas('song', function ($q) use ($search) {
+                        $q->where('title', 'like', "%{$search}%");
+                    });
+
+            });
+        }
+
+        $stats = [
+            'pending' => Dedication::pending()->count(),
+            'approved' => Dedication::approved()->count(),
+            'rejected' => Dedication::rejected()->count(),
+            'comments' => \App\Models\DedicationComment::count(),
+        ];
+
         return view('admin.moderation.dedications.index', [
             'dedications' => $q->paginate(30)->withQueryString(),
-            'status'      => $status, // optional if you want to use it in Blade
+            'status'      => $status,
+            'search'      => $search,
+            'stats'       => $stats,
         ]);
     }
 
@@ -214,6 +242,37 @@ class DedicationModerationController extends Controller
         return redirect()
             ->route('admin.moderation.dedications.index')
             ->with('status', 'Dedication created successfully.');
+    }
+
+    public function bulkDelete(Request $request)
+    {
+        $ids = collect($request->input('ids', []))
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($ids->isEmpty()) {
+            return back()->with(
+                'error',
+                'No dedications selected.'
+            );
+        }
+
+        $dedications = Dedication::whereIn('id', $ids)->get();
+
+        foreach ($dedications as $dedication) {
+
+            $dedication->comments()->delete();
+
+            $dedication->likes()->delete();
+
+            $dedication->delete();
+        }
+
+        return back()->with(
+            'status',
+            $ids->count().' dedication(s) deleted.'
+        );
     }
 
     public function bulkApprove(Request $req)
