@@ -17,6 +17,11 @@
 
     {{-- bulk actions --}}
     <div class="flex flex-wrap items-center gap-3 mb-4">
+
+      <a href="{{ route('admin.moderation.dedications.create') }}"
+        class="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500">
+          Create Dedication
+      </a>
       <form id="bulk-approve" method="post" action="{{ route('admin.moderation.dedications.bulkApprove') }}">
         @csrf @method('PATCH')
         <button type="submit"
@@ -51,6 +56,7 @@
         <th class="px-4 py-3">User</th>
         <th class="px-4 py-3">Song</th>
         <th class="px-4 py-3">Text</th>
+        <th class="px-4 py-3">Comments</th>
         <th class="px-4 py-3">Status</th>
         <th class="px-4 py-3">Reviewed By</th>
         <th class="px-4 py-3">Actions</th>
@@ -67,6 +73,11 @@
           <td class="px-4 py-3">{{ optional($d->song)->title ?? '—' }}</td>
           <td class="px-4 py-3">{{ Str::limit($d->text, 80) }}</td>
           <td class="px-4 py-3">
+            <span class="px-2 py-1 rounded bg-blue-100 text-blue-800 text-xs font-semibold">
+                {{ $d->comments_count }}
+            </span>
+        </td>
+          <td class="px-4 py-3">
             <span @class([
                 'px-2 py-1 rounded-full text-xs font-semibold',
                 'bg-green-100 text-green-800' => $d->status === 'approved',
@@ -77,17 +88,41 @@
             </span>
           </td>
           <td class="px-4 py-3">{{ optional($d->reviewer)->name ?? '—' }}</td>
-          <td class="px-4 py-3 space-x-2">
-            <form method="post" action="{{ route('admin.moderation.dedications.approve',$d) }}" class="inline">
+          <td class="px-4 py-3">
+            <div class="flex items-center gap-2">
+
+              <a href="{{ route('admin.moderation.dedications.show', $d) }}"
+                class="px-3 py-1 text-sm rounded bg-sky-600 text-white hover:bg-sky-500">
+                  View
+              </a>
+
+              <a href="{{ route('admin.moderation.dedications.comments', $d) }}"
+                class="px-3 py-1 text-sm rounded bg-blue-600 text-white hover:bg-blue-500">
+                  Comments
+              </a>
+            
+            <form method="post" action="{{ route('admin.moderation.dedications.approve',$d) }}">
               @csrf @method('PATCH')
-              <button class="px-3 py-1 rounded bg-green-600 text-white hover:bg-green-500">Approve</button>
+              <button class="px-3 py-1 text-sm rounded bg-green-600 text-white hover:bg-green-500">Approve</button>
             </form>
-            <form method="post" action="{{ route('admin.moderation.dedications.reject',$d) }}" class="inline"
-                  onsubmit="return confirmReject(this);">
+            <form method="post" action="{{ route('admin.moderation.dedications.reject',$d) }}" onsubmit="return confirmReject(this);">
               @csrf @method('PATCH')
               <input type="hidden" name="reason" value="">
-              <button class="px-3 py-1 rounded bg-red-600 text-white hover:bg-red-500">Reject</button>
+              <button class="px-3 py-1 text-sm rounded bg-red-600 text-white hover:bg-red-500">Reject</button>
             </form>
+
+            <form method="POST"
+              action="{{ route('admin.moderation.dedications.destroy', $d) }}" onsubmit="return confirm('Delete this dedication permanently?')">
+
+            @csrf
+            @method('DELETE')
+
+            <button
+                type="submit" class="px-3 py-1 text-sm rounded bg-gray-800 text-white hover:bg-black">
+                Delete
+            </button>
+        </form>
+            </div>
           </td>
         </tr>
       @endforeach

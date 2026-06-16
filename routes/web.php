@@ -141,9 +141,32 @@ Route::middleware(['auth','role:admin,moderator'])
             ->name('dedications.bulkReject');
 
         // (the others)
+
+        Route::get('dedications/create',[DedicationModerationController::class, 'create'])
+            ->name('dedications.create');
+
+        Route::post('dedications',[DedicationModerationController::class, 'store'])
+            ->name('dedications.store');
+
         Route::get('dedications', [DedicationModerationController::class, 'index'])->name('dedications.index');
-        Route::patch('dedications/{dedication}/approve', [DedicationModerationController::class, 'approve'])->name('dedications.approve');
-        Route::patch('dedications/{dedication}/reject', [DedicationModerationController::class, 'reject'])->name('dedications.reject');
+        Route::patch('dedications/{dedication}/approve', [DedicationModerationController::class, 'approve'])
+            ->name('dedications.approve');
+        Route::patch('dedications/{dedication}/reject', [DedicationModerationController::class, 'reject'])
+            ->name('dedications.reject');
+
+        Route::get('dedications/{dedication}',[DedicationModerationController::class, 'show'])
+            ->name('dedications.show');
+
+        Route::delete('dedications/{dedication}',[DedicationModerationController::class, 'destroy'])
+            ->name('dedications.destroy');
+
+        Route::get('dedications/{dedication}/comments',[DedicationModerationController::class, 'comments'])
+            ->name('dedications.comments');
+
+        Route::delete('dedication-comments/{comment}',[DedicationModerationController::class, 'destroyComment'])
+                ->name('dedication-comments.destroy');
+
+        
 
 
     });

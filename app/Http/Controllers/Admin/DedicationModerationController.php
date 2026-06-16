@@ -1,12 +1,14 @@
 <?php
 
 namespace App\Http\Controllers\Admin;
-
-use App\Http\Controllers\Controller;
 use App\Models\Dedication;
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\Notification;
+use App\Models\DedicationComment;
+use App\Models\User;
+use App\Models\Song;
 
 class DedicationModerationController extends Controller
 {
@@ -16,6 +18,7 @@ class DedicationModerationController extends Controller
 
         $q = \App\Models\Dedication::query()
             ->with(['reviewer','user','song'])
+            ->withCount('comments')
             ->latest();
 
         if ($status !== '') {
@@ -31,7 +34,17 @@ class DedicationModerationController extends Controller
     public function show(Dedication $dedication)
     {
         return view('admin.moderation.dedications.show', [
-            'd' => $dedication->load(['reviewer','user','song'])
+            'd' => $dedication
+                ->load([
+                    'reviewer',
+                    'user',
+                    'song',
+                    'toUser',
+                ])
+                ->loadCount([
+                    'comments',
+                    'likes',
+                ]),
         ]);
     }
 
@@ -126,6 +139,81 @@ class DedicationModerationController extends Controller
             $this->audit('dedication.rejected', ['id'=>$dedication->id, 'reason'=>$dedication->reject_reason]);
         }
         return back()->with('status','Rejected');
+    }
+
+    public function destroy(Dedication $dedication)
+    {
+        $dedication->comments()->delete();
+        $dedication->likes()->delete();
+
+        $dedication->delete();
+
+        return back()->with(
+            'success',
+            'Dedication deleted successfully.'
+        );
+    }
+
+    public function comments(Dedication $dedication)
+    {
+        $comments = $dedication->comments()
+            ->with('user')
+            ->latest()
+            ->paginate(50);
+
+        return view(
+            'admin.moderation.dedications.comments',
+            compact('dedication', 'comments')
+        );
+    }
+
+    public function destroyComment(DedicationComment $comment)
+    {
+        $comment->delete();
+
+        return back()->with(
+            'success',
+            'Comment deleted successfully.'
+        );
+    }
+
+    public function create()
+    {
+        return view(
+            'admin.moderation.dedications.create',
+            [
+                'users' => User::orderBy('name')->get(),
+                'songs' => Song::orderBy('title')->get(),
+            ]
+        );
+    }
+
+
+    public function store(Request $request)
+    {
+        $data = $request->validate([
+            'user_id' => ['required', 'exists:users,id'],
+            'song_id' => ['required', 'exists:songs,id'],
+            'to_name' => ['required', 'string', 'max:255'],
+            'message' => ['required', 'string', 'max:300'],
+        ]);
+
+        Dedication::create([
+            'user_id' => $data['user_id'],
+            'song_id' => $data['song_id'],
+            'to_name' => $data['to_name'],
+            'message' => $data['message'],
+
+            'status' => 'approved',
+
+            'reviewed_by' => auth()->id(),
+            'reviewed_at' => now(),
+            'reject_reason' => null,
+        ]);
+
+        return redirect()
+            ->route('admin.moderation.dedications.index')
+            ->with('status', 'Dedication created successfully.');
     }
 
     public function bulkApprove(Request $req)
