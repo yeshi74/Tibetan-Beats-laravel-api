@@ -68,9 +68,6 @@ Route::middleware(['auth', 'is_admin'])
         Route::patch('in-app-messages/{inAppMessage}', [InAppMessageController::class,'update'])->name('in_app_messages.update');
         Route::delete('in-app-messages/{inAppMessage}', [InAppMessageController::class,'destroy'])->name('in_app_messages.destroy');
 
-        Route::get('artists/{artist}',[App\Http\Controllers\Admin\ArtistAdminController::class, 'show'])
-        ->name('artists.show');
-
 
         Route::get('artists', [\App\Http\Controllers\Admin\ArtistAdminController::class, 'index'])->name('artists.index');
         Route::get('artists/create',[\App\Http\Controllers\Admin\ArtistAdminController::class, 'create'])

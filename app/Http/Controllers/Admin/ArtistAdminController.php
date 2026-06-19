@@ -56,7 +56,7 @@ class ArtistAdminController extends Controller
             'real_name' => $validated['real_name'] ?? null,
             'country' => $validated['country'] ?? null,
             'profile_image' => $profileImage,
-            'verified' => false,
+            'verified' => true,
         ]);
 
         return redirect()
