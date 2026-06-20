@@ -70,7 +70,7 @@ class SongAdminController extends Controller
 
         $validated = $request->validate([
             'title'       => 'required|string|max:255',
-            'artist_id' => 'required|exists:artists,id',
+            'artist_id'   => 'nullable|exists:artists,id',
             'file'        => 'required|file|mimes:mp3,wav|max:51200',
             'cover_image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'album_id'    => 'nullable|exists:albums,id',

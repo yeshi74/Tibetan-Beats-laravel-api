@@ -203,6 +203,12 @@ public function me(Request $request)
     public function show(Request $request, Artist $artist)
     {
 
+        if (!$artist->show_profile) {
+            return response()->json([
+                'message' => 'Artist not found'
+            ], 404);
+        }
+
         $user = $request->user();
 
         $followersCount = $artist->followers()->count();
@@ -458,6 +464,7 @@ public function me(Request $request)
     public function popular()
     {
         $artists = Artist::withCount('followers')
+            ->where('show_profile', true)
             ->where('verified', true)
             ->orderByDesc('followers_count')
             ->take(10)
@@ -483,6 +490,7 @@ public function me(Request $request)
     public function recentlyVerified()
     {
         $artists = Artist::withCount('followers')
+            ->where('show_profile', true)
             ->where('verified', true)
             ->latest()
             ->take(10)
@@ -557,7 +565,7 @@ public function me(Request $request)
         }
 
         // Existing unclaimed artist profile match
-        $possibleArtist = Artist::query()
+        $possibleArtist = Artist::where('show_profile', true)
             ->whereNull('user_id')
             ->where(function ($q) use ($user) {
 

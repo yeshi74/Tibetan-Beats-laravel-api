@@ -63,6 +63,7 @@ class AppSectionController extends Controller
 
                     'artists' => $section->section_type === 'popular_artists'
                         ? Artist::withCount('followers')
+                            ->where('show_profile', true)
                             ->where('verified', true)
                             ->orderByDesc('followers_count')
                             ->take($section->limit)
@@ -163,6 +164,7 @@ class AppSectionController extends Controller
 
                     'artists' => $section->section_type === 'verified_artists'
                         ? Artist::where('verified', true)
+                            ->where('show_profile', true)
                             ->latest()
                             ->take($section->limit)
                             ->get()

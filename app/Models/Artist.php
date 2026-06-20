@@ -21,6 +21,7 @@ class Artist extends Model
         'verified',
         'meta',
         'social_links',
+        'show_profile',
     ];
 
     protected $casts = [

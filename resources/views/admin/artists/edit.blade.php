@@ -42,6 +42,31 @@
         </div>
 
         <div class="mb-3">
+    <label class="form-label">
+        Artist Profile Visibility
+    </label>
+
+    <select
+        name="show_profile"
+        class="form-control"
+    >
+        <option
+            value="1"
+            {{ $artist->show_profile ? 'selected' : '' }}
+        >
+            Visible
+        </option>
+
+        <option
+            value="0"
+            {{ !$artist->show_profile ? 'selected' : '' }}
+        >
+            Hidden
+        </option>
+    </select>
+</div>
+
+        <div class="mb-3">
             <label class="form-label">Profile Image</label>
 
             @if($artist->profile_image)

@@ -79,6 +79,7 @@ class ArtistAdminController extends Controller
             'real_name' => ['nullable', 'string', 'max:255'],
             'country' => ['nullable', 'string', 'max:255'],
             'profile_image' => ['nullable', 'image', 'max:5120'],
+            'show_profile' => 'required|boolean',
         ]);
 
         if ($request->hasFile('profile_image')) {
@@ -101,6 +102,8 @@ class ArtistAdminController extends Controller
 
         $artist->country =
             $validated['country'] ?? null;
+
+        $artist->show_profile = (bool) $request->show_profile;
 
         $artist->save();
 
