@@ -220,6 +220,12 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::delete('/comments/{comment}',[DedicationCommentController::class, 'destroy']);
 
+    Route::middleware('auth:sanctum')->group(function () {
+
+    Route::get('/artist/status',[ArtistController::class, 'artistStatus']);
+
+});
+
 
 
     

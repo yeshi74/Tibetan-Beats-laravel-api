@@ -60,6 +60,11 @@
         🎤 Artist Claims
     </a>
 
+    <a href="{{ route('admin.artist-applications.index') }}"
+      class="nav-link block px-3 py-2 rounded bg-gray-700 hover:bg-gray-700/80">
+        🎵 Artist Applications
+    </a>
+
       <a href="{{ route('admin.users.index') }}" data-href="{{ route('admin.users.index') }}" class="nav-link block px-3 py-2 rounded bg-gray-700 hover:bg-gray-700/80">👥 Users</a>
       <a href="{{ route('admin.in_app_messages.index') }}" data-href="{{ route('admin.in_app_messages.index') }}" class="nav-link block px-3 py-2 rounded bg-gray-700 hover:bg-gray-700/80">✉️ In-App Messages</a>
       <a href="{{ route('admin.genres.index') }}" data-href="{{ route('admin.genres.index') }}" class="nav-link block px-3 py-2 rounded bg-gray-700 hover:bg-gray-700/80">📁 Genres</a>
@@ -220,6 +225,7 @@
                 ['label'=>'Artists','route'=>route('admin.artists.index')],
                 ['label'=>'Ownership Claims','route'=>route('admin.song-claims.index')],
                 ['label'=>'Artist Claims','route'=>route('admin.artist-claims.index')],
+                ['label'=>'Artist applications','route'=>route('admin.artist-applications.index')],
                 ['label'=>'Users','route'=>route('admin.users.index')],
                 ['label'=>'In-App Messages','route'=>route('admin.in_app_messages.index')],
                 ['label'=>'Genres','route'=>route('admin.genres.index')],

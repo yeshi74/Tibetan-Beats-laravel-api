@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Log;
 use App\Models\Artist;
 use App\Models\Song;
 use App\Models\ArtistFollower;
+use App\Models\ArtistApplication;
+use App\Models\ArtistClaim;
 
 class ArtistController extends Controller
 {
@@ -17,11 +19,42 @@ class ArtistController extends Controller
 public function apply(Request $request)
 {
     $user = $request->user();
+
     if (!$user) {
-        return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
+        return response()->json([
+            'success' => false,
+            'message' => 'Unauthorized'
+        ], 401);
     }
 
-    // Validation: include file rules for ID front/back and optional avatar
+    // Already an approved artist?
+    $existingArtist = Artist::where(
+        'user_id',
+        $user->id
+    )->first();
+
+    if ($existingArtist) {
+        return response()->json([
+            'success' => false,
+            'message' => 'You are already an artist.'
+        ], 422);
+    }
+
+    // Existing pending application?
+    $pendingApplication = ArtistApplication::where(
+        'user_id',
+        $user->id
+    )
+    ->where('status', 'pending')
+    ->first();
+
+    if ($pendingApplication) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Your application is already under review.'
+        ], 422);
+    }
+
     $v = Validator::make($request->all(), [
         'display_name' => 'required|string|max:255',
         'real_name' => 'nullable|string|max:255',
@@ -35,87 +68,70 @@ public function apply(Request $request)
     ]);
 
     if ($v->fails()) {
-        \Log::warning('[ArtistController::apply] validation failed', ['errors' => $v->errors()->all()]);
-        return response()->json(['success' => false, 'errors' => $v->errors()], 422);
+        return response()->json([
+            'success' => false,
+            'errors' => $v->errors()
+        ], 422);
     }
 
-    // Build base data
     $data = [
         'display_name' => $request->input('display_name'),
         'real_name' => $request->input('real_name'),
         'country' => $request->input('country'),
-        // leave profile_image as string path if sent as a path; we also accept upload below
         'profile_image' => $request->input('profile_image'),
-        'social_links' => $request->input('social_links') ? $request->input('social_links') : null,
+        'social_links' => $request->input('social_links'),
     ];
 
-    // meta starts with bio if present
     $meta = array_filter([
         'bio' => $request->input('bio'),
     ]);
 
-    // handle uploaded profile image (avatar)
     if ($request->hasFile('profile_image')) {
-        try {
-            $pf = $request->file('profile_image');
-            $path = $pf->store('artists/avatars', 'public');
-            $data['profile_image'] = $path;
-        } catch (\Throwable $e) {
-            \Log::warning('[ArtistController::apply] profile image store failed: ' . $e->getMessage());
-        }
+        $data['profile_image'] = $request
+            ->file('profile_image')
+            ->store('artists/avatars', 'public');
     }
 
-    // handle ID front/back uploads
     if ($request->hasFile('id_front')) {
-        try {
-            $f = $request->file('id_front');
-            $p = $f->store('artists/ids', 'public');
-            $meta['id_front'] = $p;
-        } catch (\Throwable $e) {
-            \Log::warning('[ArtistController::apply] id_front store failed: ' . $e->getMessage());
-        }
+        $meta['id_front'] = $request
+            ->file('id_front')
+            ->store('artists/ids', 'public');
     }
+
     if ($request->hasFile('id_back')) {
-        try {
-            $f = $request->file('id_back');
-            $p = $f->store('artists/ids', 'public');
-            $meta['id_back'] = $p;
-        } catch (\Throwable $e) {
-            \Log::warning('[ArtistController::apply] id_back store failed: ' . $e->getMessage());
-        }
+        $meta['id_back'] = $request
+            ->file('id_back')
+            ->store('artists/ids', 'public');
     }
 
     if ($request->hasFile('sample_track')) {
-        try {
-            $track = $request->file('sample_track');
-
-            $path = $track->store(
-                'artists/sample_tracks',
-                'public'
-            );
-
-            $meta['sample_track'] = $path;
-
-        } catch (\Throwable $e) {
-            \Log::warning(
-                '[ArtistController::apply] sample_track store failed: '
-                . $e->getMessage()
-            );
-        }
+        $meta['sample_track'] = $request
+            ->file('sample_track')
+            ->store('artists/sample_tracks', 'public');
     }
 
-    // Merge meta (keep other meta values if updating)
-    $data['meta'] = array_merge($meta, $request->input('meta') ? (array)$request->input('meta') : []);
-
-    // Create or update the artist record for this user (unverified by default)
-    $artist = Artist::updateOrCreate(
-        ['user_id' => $user->id],
-        array_merge($data, ['verified' => 0])
+    $data['meta'] = array_merge(
+        $meta,
+        $request->input('meta')
+            ? (array) $request->input('meta')
+            : []
     );
+
+    $application = ArtistApplication::create([
+        'user_id' => $user->id,
+        'display_name' => $data['display_name'],
+        'real_name' => $data['real_name'],
+        'country' => $data['country'],
+        'profile_image' => $data['profile_image'],
+        'social_links' => $data['social_links'],
+        'meta' => $data['meta'],
+        'status' => 'pending',
+    ]);
 
     return response()->json([
         'success' => true,
-        'data' => $artist
+        'message' => 'Artist application submitted successfully.',
+        'data' => $application,
     ], 201);
 }
 
@@ -493,6 +509,7 @@ public function me(Request $request)
     {
         $user = $request->user();
 
+        // Approved artist
         $artist = Artist::where(
             'user_id',
             $user->id
@@ -507,14 +524,28 @@ public function me(Request $request)
             ]);
         }
 
-        $pendingClaim = \App\Models\ArtistClaim::where(
+        // Pending artist application
+        $pendingApplication = ArtistApplication::where(
             'user_id',
             $user->id
         )
-        ->where(
-            'status',
-            'pending'
+        ->where('status', 'pending')
+        ->first();
+
+        if ($pendingApplication) {
+            return response()->json([
+                'is_artist' => false,
+                'has_pending_claim' => true,
+                'possible_artist_match' => false,
+            ]);
+        }
+
+        // Pending ownership claim
+        $pendingClaim = ArtistClaim::where(
+            'user_id',
+            $user->id
         )
+        ->where('status', 'pending')
         ->first();
 
         if ($pendingClaim) {
@@ -525,6 +556,7 @@ public function me(Request $request)
             ]);
         }
 
+        // Existing unclaimed artist profile match
         $possibleArtist = Artist::query()
             ->whereNull('user_id')
             ->where(function ($q) use ($user) {
@@ -542,24 +574,25 @@ public function me(Request $request)
             })
             ->first();
 
-            if ($possibleArtist) {
-                return response()->json([
-                    'is_artist' => false,
-                    'has_pending_claim' => false,
-                    'possible_artist_match' => true,
+        if ($possibleArtist) {
+            return response()->json([
+                'is_artist' => false,
+                'has_pending_claim' => false,
+                'possible_artist_match' => true,
 
-                    'matched_artist_id' => $possibleArtist->id,
-                    'matched_artist_name' => $possibleArtist->display_name,
+                'matched_artist_id' => $possibleArtist->id,
+                'matched_artist_name' => $possibleArtist->display_name,
 
-                    'matched_artist_image' => $possibleArtist->profile_image
-                        ? url('storage/' . ltrim($possibleArtist->profile_image, '/'))
-                        : null,
+                'matched_artist_image' => $possibleArtist->profile_image
+                    ? url('storage/' . ltrim($possibleArtist->profile_image, '/'))
+                    : null,
 
-                    'matched_artist_country' => $possibleArtist->country,
+                'matched_artist_country' => $possibleArtist->country,
 
-                    'matched_artist_verified' => (bool) $possibleArtist->verified,
-                ]);
-            }
+                'matched_artist_verified' => (bool) $possibleArtist->verified,
+            ]);
+        }
+
         return response()->json([
             'is_artist' => false,
             'has_pending_claim' => false,

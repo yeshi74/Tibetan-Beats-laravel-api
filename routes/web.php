@@ -19,6 +19,7 @@ use App\Http\Controllers\Admin\AppSectionController;
 use App\Http\Controllers\Admin\AppSettingController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminHomeController;
+use App\Http\Controllers\Admin\ArtistApplicationController;
 
 
 Route::get('/', function () {
@@ -122,6 +123,15 @@ Route::middleware(['auth', 'is_admin'])
         Route::post('/settings',[AppSettingController::class, 'update'])->name('settings.update');
 
         Route::get('/dashboard',[AdminDashboardController::class, 'index'])->name('dashboard');
+
+
+        Route::get('/artist-applications',[ArtistApplicationController::class, 'index'])->name('artist-applications.index');
+
+        Route::get('/artist-applications/{application}',[ArtistApplicationController::class, 'show'])->name('artist-applications.show');
+
+        Route::post('/artist-applications/{application}/approve',[ArtistApplicationController::class, 'approve'])->name('artist-applications.approve');
+
+        Route::post('/artist-applications/{application}/reject',[ArtistApplicationController::class, 'reject'])->name('artist-applications.reject');
 
 
     });
