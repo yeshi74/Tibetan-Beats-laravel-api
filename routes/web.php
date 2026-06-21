@@ -20,6 +20,7 @@ use App\Http\Controllers\Admin\AppSettingController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminHomeController;
 use App\Http\Controllers\Admin\ArtistApplicationController;
+use App\Http\Controllers\PrivacyPolicyController;
 
 
 Route::get('/', function () {
@@ -35,6 +36,9 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
+
+Route::view('/privacy-policy', 'legal.privacy');
+Route::view('/terms-of-service', 'legal.terms');
 
 
 Route::middleware(['auth', 'is_admin'])
