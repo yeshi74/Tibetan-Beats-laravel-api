@@ -9,7 +9,7 @@ class InAppMessageSeeder extends Seeder {
             ['key' => 'welcome-2025'],
             [
                 'type' => 'modal',
-                'title' => ['en' => 'Welcome to Tibetan Music'],
+                'title' => ['en' => 'Welcome to TibetTune'],
                 'body'  => ['en' => 'Check out our festival playlist and new features.'],
                 'image_url' => null,
                 'cta' => ['type'=>'route','value'=>'/playlists/festival','label'=>['en'=>'Explore']],

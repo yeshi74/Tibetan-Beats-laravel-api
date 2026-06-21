@@ -61,7 +61,7 @@
     <h2>Contact</h2>
 
     <p>
-        Email: support@tibettune.com
+        Email: support.tibettune@gmail.com
     </p>
 
 </div>

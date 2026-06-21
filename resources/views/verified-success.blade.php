@@ -44,7 +44,7 @@
     <div class="card">
         <h1>✅ Email Verified Successfully</h1>
         <p>Thank you! Your email is now verified.</p>
-        <p>You can go ahead and login to the <strong>Tibetan Music App</strong>.</p>
+        <p>You can go ahead and login to the <strong>TibetTune App</strong>.</p>
         <a href="#">Open App</a>
     </div>
 </body>

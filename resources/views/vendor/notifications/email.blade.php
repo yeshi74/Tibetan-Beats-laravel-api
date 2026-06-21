@@ -1,10 +1,10 @@
 @component('mail::message')
 {{-- App Logo --}}
 <div style="text-align:center; margin-bottom: 20px;">
-    <img src="{{ asset('images/logo.png') }}" alt="Music App Logo" width="80">
+    <img src="{{ asset('images/app_icon.png') }}" alt="Music App Logo" width="80">
 </div>
 
-# Welcome to Tibetan Music 🎵
+# Welcome to TibetTune 🎵
 
 Hello **{{ $user->name ?? 'Music Lover' }}**,
 
@@ -26,7 +26,7 @@ Once verified, you’ll be able to **login and explore thousands of songs, album
 If you did not create an account, no further action is required.  
 
 Thanks for joining our community,  
-**Tibetan Music Team**
+**TibetTune Team**
 
 ---
 
