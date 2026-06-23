@@ -126,7 +126,7 @@ Route::middleware(['auth', 'is_admin'])
         Route::get('/settings',[AppSettingController::class, 'edit'])->name('settings.edit');
         Route::post('/settings',[AppSettingController::class, 'update'])->name('settings.update');
 
-        Route::get('/dashboard',[AdminDashboardController::class, 'index'])->name('dashboard');
+        Route::get('/dashboard',[AdminDashboardController::class, 'index'])->name('stats');
 
 
         Route::get('/artist-applications',[ArtistApplicationController::class, 'index'])->name('artist-applications.index');
