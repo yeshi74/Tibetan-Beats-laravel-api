@@ -39,6 +39,7 @@ Route::middleware('auth')->group(function () {
 
 Route::view('/privacy-policy', 'legal.privacy');
 Route::view('/terms-of-service', 'legal.terms');
+Route::view('/support', 'support')->name('support');
 
 
 Route::middleware(['auth', 'is_admin'])
