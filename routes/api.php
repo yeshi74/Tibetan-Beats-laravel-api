@@ -77,6 +77,17 @@ Route::get('/settings', [AppSettingController::class, 'index']);
 
 Route::get('/dedications/{dedication}/comments',[DedicationCommentController::class, 'index']);
 
+Route::get('/artists/popular',[ArtistController::class, 'popular']);
+
+Route::get('/artists/recently-verified', [ArtistController::class, 'recentlyVerified']);
+
+    // Artist public view
+Route::get('/artists/{artist}', [ArtistController::class, 'show']);
+
+Route::get('/search/sections', [AppSectionController::class, 'search']);
+
+Route::get('/home/sections', [AppSectionController::class, 'home']);
+
 
 
 
@@ -186,9 +197,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::delete('/artists/{artist}/follow',[ArtistFollowController::class, 'unfollow']);
 
-    Route::get('/artists/popular',[ArtistController::class, 'popular']);
+    
 
-    Route::get('/artists/recently-verified', [ArtistController::class, 'recentlyVerified']);
+    
 
     Route::get('/notifications',[NotificationController::class, 'index']);
 
@@ -209,10 +220,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/artist-status', [ArtistController::class, 'artistStatus']);
 
-    Route::get('/search/sections', [AppSectionController::class, 'search']);
+    
 
     //home page admin control
-    Route::get('/home/sections', [AppSectionController::class, 'home']);
+    
 
     Route::get('/admin/dashboard',[AdminDashboardController::class, 'index']);
 
@@ -220,16 +231,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::delete('/comments/{comment}',[DedicationCommentController::class, 'destroy']);
 
-    Route::middleware('auth:sanctum')->group(function () {
-
     Route::get('/artist/status',[ArtistController::class, 'artistStatus']);
 
-});
 
 
-
-    
-
-    // Artist public view
-Route::get('/artists/{artist}', [ArtistController::class, 'show']);
 });
