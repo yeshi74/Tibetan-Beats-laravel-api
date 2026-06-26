@@ -222,7 +222,6 @@ class SongApiController extends Controller
                     $read = $left > $buf ? $buf : $left;
                     $data = fread($h, $read);
                     if ($data === false) break;
-                    echo $data;
                     flush();
                     $left -= strlen($data);
                 }
