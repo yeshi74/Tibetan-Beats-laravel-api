@@ -17,28 +17,154 @@ class AppSectionController extends Controller
 
 public function home(Request $request)
 {
+    $user = $request->user();
+
+    $likedIds = $user
+        ? DB::table('liked_songs')
+            ->where('user_id', $user->id)
+            ->pluck('song_id')
+            ->toArray()
+        : [];
+
     $sections = AppSection::with([
-    'genre:id,name',
-    'playlist:id,name',
-])
-->where('page','home')
-->where('is_active',true)
-->orderBy('sort_order')
-->get();
+        'genre:id,name',
+        'playlist:id,name'
+    ])
+        ->where('page', 'home')
+        ->where('is_active', true)
+        ->orderBy('sort_order')
+        ->get([
+            'id',
+            'title',
+            'section_type',
+            'reference_id',
+            'sort_order',
+            'limit',
+        ]);
 
-return response()->json([
-    'sections' => $sections->map(function ($section) {
-        return [
-            'id' => $section->id,
-            'title' => $section->title,
-            'section_type' => $section->section_type,
+    return response()->json([
+        'sections' => $sections->map(function ($section) use ($likedIds) {
 
-            'songs' => Song::latest()
-    ->take(5)
-    ->get()
-        ];
-    }),
-]);
+            return [
+                'id' => $section->id,
+                'title' => $section->title,
+                'section_type' => $section->section_type,
+                'reference_id' => $section->reference_id,
+                'sort_order' => $section->sort_order,
+
+                'genre' => $section->genre ? [
+                    'id' => $section->genre->id,
+                    'name' => $section->genre->name,
+                ] : null,
+
+                'playlist' => $section->playlist ? [
+                    'id' => $section->playlist->id,
+                    'name' => $section->playlist->name,
+                ] : null,
+
+                'artists' => $section->section_type === 'popular_artists'
+                    ? Artist::withCount('followers')
+                        ->where('show_profile', true)
+                        ->where('verified', true)
+                        ->orderByDesc('followers_count')
+                        ->take($section->limit)
+                        ->get()
+                        ->map(function ($artist) {
+                            return [
+                                'id' => $artist->id,
+                                'display_name' => $artist->display_name,
+                                'verified' => (bool) $artist->verified,
+                                'followers_count' => $artist->followers_count,
+                                'profile_image' => $artist->profile_image
+                                    ? url('storage/' . ltrim($artist->profile_image, '/'))
+                                    : null,
+                            ];
+                        })
+                        ->values()
+                    : [],
+
+                'songs' => match ($section->section_type) {
+
+                    'playlist' => $section->playlist
+                        ? $section->playlist->songs()
+                            ->latest()
+                            ->take($section->limit)
+                            ->get()
+                            ->map(function ($song) use ($likedIds) {
+                                $song->audio_url = url("/api/songs/stream/{$song->id}");
+                                $song->cover_image_url = $song->cover_image
+                                    ? url('storage/' . ltrim($song->cover_image, '/'))
+                                    : null;
+                                $song->is_liked = in_array($song->id, $likedIds);
+                                return $song;
+                            })
+                            ->values()
+                        : [],
+
+                    'genre' => $section->genre
+                        ? Song::where('genre_id', $section->genre->id)
+                            ->latest()
+                            ->take($section->limit)
+                            ->get()
+                            ->map(function ($song) use ($likedIds) {
+                                $song->audio_url = url("/api/songs/stream/{$song->id}");
+                                $song->cover_image_url = $song->cover_image
+                                    ? url('storage/' . ltrim($song->cover_image, '/'))
+                                    : null;
+                                $song->is_liked = in_array($song->id, $likedIds);
+                                return $song;
+                            })
+                            ->values()
+                        : [],
+
+                    'latest_songs' => Song::latest()
+                        ->take($section->limit)
+                        ->get()
+                        ->map(function ($song) use ($likedIds) {
+                            $song->audio_url = url("/api/songs/stream/{$song->id}");
+                            $song->cover_image_url = $song->cover_image
+                                ? url('storage/' . ltrim($song->cover_image, '/'))
+                                : null;
+                            $song->is_liked = in_array($song->id, $likedIds);
+                            return $song;
+                        })
+                        ->values(),
+
+                    'trending_songs' => Song::orderByDesc('play_count')
+                        ->take($section->limit)
+                        ->get()
+                        ->map(function ($song) use ($likedIds) {
+                            $song->audio_url = url("/api/songs/stream/{$song->id}");
+                            $song->cover_image_url = $song->cover_image
+                                ? url('storage/' . ltrim($song->cover_image, '/'))
+                                : null;
+                            $song->is_liked = in_array($song->id, $likedIds);
+                            return $song;
+                        })
+                        ->values(),
+
+                    'most_liked_songs' => Song::select('songs.*')
+                        ->leftJoin('liked_songs', 'songs.id', '=', 'liked_songs.song_id')
+                        ->selectRaw('COUNT(liked_songs.id) as likes_count')
+                        ->groupBy('songs.id')
+                        ->orderByDesc('likes_count')
+                        ->take($section->limit)
+                        ->get()
+                        ->map(function ($song) use ($likedIds) {
+                            $song->audio_url = url("/api/songs/stream/{$song->id}");
+                            $song->cover_image_url = $song->cover_image
+                                ? url('storage/' . ltrim($song->cover_image, '/'))
+                                : null;
+                            $song->is_liked = in_array($song->id, $likedIds);
+                            return $song;
+                        })
+                        ->values(),
+
+                    default => [],
+                },
+            ];
+        }),
+    ]);
 }
     // public function home(Request $request)
     // {
