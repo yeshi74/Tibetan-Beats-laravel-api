@@ -17,14 +17,16 @@ class AppSectionController extends Controller
 
 public function home(Request $request)
 {
-    $sections = AppSection::where('page', 'home')
-        ->where('is_active', true)
-        ->orderBy('sort_order')
-        ->get();
+    $sections = AppSection::with([
+    'genre:id,name',
+    'playlist:id,name',
+])
+->where('page','home')
+->where('is_active',true)
+->orderBy('sort_order')
+->get();
 
-    return response()->json([
-        'count' => $sections->count(),
-    ]);
+return response()->json($sections);
 }
     // public function home(Request $request)
     // {
