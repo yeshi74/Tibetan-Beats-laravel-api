@@ -27,20 +27,20 @@ class AppSectionController extends Controller
             : [];
 
         $sections = AppSection::with([
-            'genre:id,name',
-            'playlist:id,name'
-        ])
-            ->where('page', 'home')
-            ->where('is_active', true)
-            ->orderBy('sort_order')
-            ->get([
-                'id',
-                'title',
-                'section_type',
-                'reference_id',
-                'sort_order',
-            ]);
-
+    'genre:id,name',
+    'playlist:id,name'
+])
+->where('page', 'home')
+->where('is_active', true)
+->orderBy('sort_order')
+->get([
+    'id',
+    'title',
+    'section_type',
+    'reference_id',
+    'sort_order',
+    'limit',
+]);
         return response()->json([
             'sections' => $sections->map(function ($section) use ($request, $likedIds) {
 
