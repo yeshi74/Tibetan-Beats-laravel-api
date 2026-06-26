@@ -26,7 +26,15 @@ public function home(Request $request)
 ->orderBy('sort_order')
 ->get();
 
-return response()->json($sections);
+return response()->json([
+    'sections' => $sections->map(function ($section) {
+        return [
+            'id' => $section->id,
+            'title' => $section->title,
+            'section_type' => $section->section_type,
+        ];
+    }),
+]);
 }
     // public function home(Request $request)
     // {
