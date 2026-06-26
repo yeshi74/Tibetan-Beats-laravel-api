@@ -32,6 +32,10 @@ return response()->json([
             'id' => $section->id,
             'title' => $section->title,
             'section_type' => $section->section_type,
+
+            'songs' => Song::latest()
+    ->take(5)
+    ->get()
         ];
     }),
 ]);
