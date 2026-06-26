@@ -208,29 +208,12 @@ class SongApiController extends Controller
             $headers['Content-Length'] = (string) $size;
         }
 
-        $response = new StreamedResponse(function () use ($fullPath, $start, $end, $song) {
-            $h = fopen($fullPath, 'rb');
-            if ($h === false) {
-                Log::error("[SongApiController::stream] fopen failed #{$song->id}");
-                return;
-            }
-            try {
-                fseek($h, $start);
-                $buf = 1024 * 64;
-                $left = ($end - $start) + 1;
-                while ($left > 0 && !feof($h)) {
-                    $read = $left > $buf ? $buf : $left;
-                    $data = fread($h, $read);
-                    if ($data === false) break;
-                    flush();
-                    $left -= strlen($data);
-                }
-            } finally {
-                fclose($h);
-            }
-        }, $status, $headers);
+        return response()->file($fullPath, [
+            'Content-Type' => $mime,
+            'Accept-Ranges' => 'bytes',
+            'Cache-Control' => 'public, max-age=31536000',
+        ]);
 
-        return $response;
     }
 
     /**
