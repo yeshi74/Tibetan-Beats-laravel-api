@@ -12,6 +12,7 @@ use App\Models\Song;
 use App\Models\ArtistFollower;
 use App\Models\ArtistApplication;
 use App\Models\ArtistClaim;
+use App\Services\SongTransformer;
 
 class ArtistController extends Controller
 {
@@ -201,81 +202,95 @@ public function me(Request $request)
 
 
     public function show(Request $request, Artist $artist)
-{
-    if (!$artist->show_profile) {
+    {
+        if (!$artist->show_profile) {
+            return response()->json([
+                'message' => 'Profile not available'
+            ], 404);
+        }
+
+        $user = $this->resolveUser($request);
+
+        $followersCount = $artist->followers()->count();
+
+        $isOwnProfile = $user
+            ? $artist->user_id === $user->id
+            : false;
+
+        $isFollowing = $user
+            ? ArtistFollower::where('user_id', $user->id)
+                ->where('artist_id', $artist->id)
+                ->exists()
+            : false;
+
+        $songs = Song::where('artist_id', $artist->id)
+            ->where('status', 'published')
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(function ($s) {
+                return [
+                    'id' => $s->id,
+                    'title' => $s->title,
+                    'cover_image_url' => $s->cover_image
+                        ? url('storage/' . ltrim($s->cover_image, '/'))
+                        : null,
+                    'audio_url' => url('/api/songs/stream/' . $s->id),
+                    'play_count' => $s->play_count ?? 0,
+                ];
+            });
+
+        $alreadyArtist = false;
+        $hasPendingClaim = false;
+
+        if ($user) {
+            $alreadyArtist = Artist::where('user_id', $user->id)->exists();
+
+            $hasPendingClaim = \App\Models\ArtistClaim::where('artist_id', $artist->id)
+                ->where('user_id', $user->id)
+                ->where('status', 'pending')
+                ->exists();
+        }
+
         return response()->json([
-            'message' => 'Artist not found'
-        ], 404);
-    }
-
-    $user = $request->user();
-
-    $followersCount = $artist->followers()->count();
-
-    $isOwnProfile = $user
-        ? $artist->user_id === $user->id
-        : false;
-
-    $isFollowing = $user
-        ? ArtistFollower::where('user_id', $user->id)
-            ->where('artist_id', $artist->id)
-            ->exists()
-        : false;
-
-    $songs = Song::where('artist_id', $artist->id)
-        ->where('status', 'published')
-        ->orderByDesc('created_at')
-        ->get()
-        ->map(function ($s) {
-            return [
-                'id' => $s->id,
-                'title' => $s->title,
-                'cover_image_url' => $s->cover_image
-                    ? url('storage/' . ltrim($s->cover_image, '/'))
+            'success' => true,
+            'artist' => [
+                'id' => $artist->id,
+                'user_id' => $artist->user_id,
+                'display_name' => $artist->display_name,
+                'real_name' => $artist->real_name,
+                'country' => $artist->country,
+                'verified' => (bool) $artist->verified,
+                'profile_image' => $artist->profile_image
+                    ? url('storage/' . ltrim($artist->profile_image, '/'))
                     : null,
-                'audio_url' => url('/api/songs/stream/' . $s->id),
-                'play_count' => $s->play_count ?? 0,
-            ];
-        });
-
-    $alreadyArtist = false;
-    $hasPendingClaim = false;
-
-    if ($user) {
-        $alreadyArtist = Artist::where('user_id', $user->id)->exists();
-
-        $hasPendingClaim = \App\Models\ArtistClaim::where('artist_id', $artist->id)
-            ->where('user_id', $user->id)
-            ->where('status', 'pending')
-            ->exists();
+                'bio' => $artist->meta['bio'] ?? '',
+                'followers_count' => $followersCount,
+                'is_following' => $isFollowing,
+                'is_own_profile' => $isOwnProfile,
+                'can_claim' => (
+                    is_null($artist->user_id)
+                    && !$alreadyArtist
+                    && !$hasPendingClaim
+                ),
+                'has_pending_claim' => $hasPendingClaim,
+            ],
+            'songs' => $songs,
+        ]);
     }
 
-    return response()->json([
-        'success' => true,
-        'artist' => [
-            'id' => $artist->id,
-            'user_id' => $artist->user_id,
-            'display_name' => $artist->display_name,
-            'real_name' => $artist->real_name,
-            'country' => $artist->country,
-            'verified' => (bool) $artist->verified,
-            'profile_image' => $artist->profile_image
-                ? url('storage/' . ltrim($artist->profile_image, '/'))
-                : null,
-            'bio' => $artist->meta['bio'] ?? '',
-            'followers_count' => $followersCount,
-            'is_following' => $isFollowing,
-            'is_own_profile' => $isOwnProfile,
-            'can_claim' => (
-                is_null($artist->user_id)
-                && !$alreadyArtist
-                && !$hasPendingClaim
-            ),
-            'has_pending_claim' => $hasPendingClaim,
-        ],
-        'songs' => $songs,
-    ]);
-}
+    protected function resolveUser(Request $request)
+    {
+        $user = $request->user();
+        if ($user) {
+            return $user;
+        }
+
+        try {
+            return auth('sanctum')->user();
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
 
     public function dashboard()
     {
