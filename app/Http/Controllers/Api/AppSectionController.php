@@ -17,19 +17,14 @@ class AppSectionController extends Controller
 
 public function home(Request $request)
 {
-    $totalStart = microtime(true);
-
-    \Log::info("===== HOME API START =====");
-
     $user = $request->user();
 
+    // 1. Fetch liked IDs efficiently
     $likedIds = $user
-        ? DB::table('liked_songs')
-            ->where('user_id', $user->id)
-            ->pluck('song_id')
-            ->toArray()
+        ? DB::table('liked_songs')->where('user_id', $user->id)->pluck('song_id')->toArray()
         : [];
 
+    // 2. Fetch only necessary sections
     $sections = AppSection::with([
         'genre:id,name',
         'playlist:id,name'
@@ -37,117 +32,82 @@ public function home(Request $request)
         ->where('page', 'home')
         ->where('is_active', true)
         ->orderBy('sort_order')
-        ->get([
-            'id',
-            'title',
-            'section_type',
-            'reference_id',
-            'sort_order',
-            'limit',
-        ]);
+        ->get(['id', 'title', 'section_type', 'reference_id', 'sort_order', 'limit']);
 
-    \Log::info("Loaded {$sections->count()} sections in " . round(microtime(true) - $totalStart, 3) . "s");
-
+    // 3. Process sections
     $response = $sections->map(function ($section) use ($request, $likedIds) {
-
-        $start = microtime(true);
-
-        \Log::info("START {$section->title} ({$section->section_type})");
-
         $artists = [];
         $songs = [];
+        $limit = $section->limit ?? 10; // Fallback limit to prevent un-bounded queries
 
         switch ($section->section_type) {
-
             case 'popular_artists':
-
-                $artists = Artist::withCount('followers')
-                    ->where('show_profile', true)
+                $artists = Artist::where('show_profile', true)
                     ->where('verified', true)
+                    ->withCount('followers')
                     ->orderByDesc('followers_count')
-                    ->take($section->limit)
-                    ->get()
-                    ->map(function ($artist) {
-                        return [
-                            'id' => $artist->id,
-                            'display_name' => $artist->display_name,
-                            'verified' => (bool)$artist->verified,
-                            'followers_count' => $artist->followers_count,
-                            'profile_image' => $artist->profile_image
-                                ? url('storage/' . ltrim($artist->profile_image, '/'))
-                                : null,
-                        ];
-                    })
+                    ->take($limit)
+                    ->get(['id', 'display_name', 'verified', 'profile_image']) // Only fetch needed fields
+                    ->map(fn($artist) => [
+                        'id' => $artist->id,
+                        'display_name' => $artist->display_name,
+                        'verified' => (bool)$artist->verified,
+                        'followers_count' => $artist->followers_count,
+                        'profile_image' => $artist->profile_image 
+                            ? url('storage/' . ltrim($artist->profile_image, '/')) 
+                            : null,
+                    ])
                     ->values();
-
                 break;
 
             case 'playlist':
-
                 if ($section->playlist) {
                     $songs = $section->playlist->songs()
                         ->latest()
-                        ->take($section->limit)
+                        ->take($limit)
                         ->get()
                         ->map(fn($song) => SongTransformer::transform($request, $song, $likedIds))
                         ->values();
                 }
-
                 break;
 
             case 'genre':
-
                 if ($section->genre) {
                     $songs = Song::where('genre_id', $section->genre->id)
                         ->latest()
-                        ->take($section->limit)
+                        ->take($limit)
                         ->get()
                         ->map(fn($song) => SongTransformer::transform($request, $song, $likedIds))
                         ->values();
                 }
-
                 break;
 
             case 'latest_songs':
-
                 $songs = Song::latest()
-                    ->take($section->limit)
+                    ->take($limit)
                     ->get()
                     ->map(fn($song) => SongTransformer::transform($request, $song, $likedIds))
                     ->values();
-
                 break;
 
             case 'trending_songs':
-
                 $songs = Song::orderByDesc('play_count')
-                    ->take($section->limit)
+                    ->take($limit)
                     ->get()
                     ->map(fn($song) => SongTransformer::transform($request, $song, $likedIds))
                     ->values();
-
                 break;
 
             case 'most_liked_songs':
-
-                $songs = Song::select('songs.*')
-                    ->leftJoin('liked_songs', 'songs.id', '=', 'liked_songs.song_id')
-                    ->selectRaw('COUNT(liked_songs.id) as likes_count')
-                    ->groupBy('songs.id')
+                // Optimized to avoid strict mode groupBy execution hangs
+                $songs = Song::withCount('likes')
                     ->orderByDesc('likes_count')
-                    ->take($section->limit)
+                    ->take($limit)
                     ->get()
                     ->map(fn($song) => SongTransformer::transform($request, $song, $likedIds))
                     ->values();
-
                 break;
         }
-
-        \Log::info(
-            "END {$section->title} (" .
-            round(microtime(true) - $start, 3) .
-            "s)"
-        );
 
         return [
             'id' => $section->id,
@@ -155,28 +115,18 @@ public function home(Request $request)
             'section_type' => $section->section_type,
             'reference_id' => $section->reference_id,
             'sort_order' => $section->sort_order,
-
-            'genre' => $section->genre ? [
-                'id' => $section->genre->id,
-                'name' => $section->genre->name,
-            ] : null,
-
-            'playlist' => $section->playlist ? [
-                'id' => $section->playlist->id,
-                'name' => $section->playlist->name,
-            ] : null,
-
+            'genre' => $section->genre ? ['id' => $section->genre->id, 'name' => $section->genre->name] : null,
+            'playlist' => $section->playlist ? ['id' => $section->playlist->id, 'name' => $section->playlist->name] : null,
             'artists' => $artists,
             'songs' => $songs,
         ];
     });
 
-    \Log::info("===== HOME API TOTAL " . round(microtime(true) - $totalStart, 3) . "s =====");
-
     return response()->json([
         'sections' => $response,
     ]);
 }
+
 
 
     // public function home(Request $request)
