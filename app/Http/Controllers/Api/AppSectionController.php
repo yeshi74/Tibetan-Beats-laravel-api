@@ -18,7 +18,13 @@ class AppSectionController extends Controller
     public function home(Request $request)
     {
 
+        $user = $this->resolveUser($request);
         $user = $request->user();
+
+        \Log::info('Home sections auth', [
+    'request_user' => optional($request->user())->id,
+    'resolved_user' => optional($this->resolveUser($request))->id,
+]);
 
         $likedIds = $user
             ? DB::table('liked_songs')
@@ -223,6 +229,21 @@ class AppSectionController extends Controller
                 ];
             }),
         ]);
+    }
+
+
+    protected function resolveUser(Request $request)
+    {
+        $user = $request->user();
+        if ($user) {
+            return $user;
+        }
+
+        try {
+            return auth('sanctum')->user();
+        } catch (\Throwable $e) {
+            return null;
+        }
     }
 
 
