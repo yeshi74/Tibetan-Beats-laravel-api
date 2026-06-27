@@ -19,12 +19,6 @@ class AppSectionController extends Controller
     {
 
         $user = $this->resolveUser($request);
-        $user = $request->user();
-
-        \Log::info('Home sections auth', [
-    'request_user' => optional($request->user())->id,
-    'resolved_user' => optional($this->resolveUser($request))->id,
-]);
 
         $likedIds = $user
             ? DB::table('liked_songs')
