@@ -15,236 +15,122 @@ use App\Services\SongTransformer;
 class AppSectionController extends Controller
 {
 
-public function home(Request $request)
-{
-    $user = $request->user();
+    public function home(Request $request)
+    {
 
-    // 1. Fetch liked IDs efficiently
-    $likedIds = $user
-        ? DB::table('liked_songs')->where('user_id', $user->id)->pluck('song_id')->toArray()
-        : [];
+        $user = $request->user();
 
-    // 2. Fetch only necessary sections
-    $sections = AppSection::with([
-        'genre:id,name',
-        'playlist:id,name'
-    ])
-        ->where('page', 'home')
-        ->where('is_active', true)
-        ->orderBy('sort_order')
-        ->get(['id', 'title', 'section_type', 'reference_id', 'sort_order', 'limit']);
+        $likedIds = $user
+            ? DB::table('liked_songs')
+                ->where('user_id', $user->id)
+                ->pluck('song_id')
+                ->toArray()
+            : [];
 
-    // 3. Process sections
-    $response = $sections->map(function ($section) use ($request, $likedIds) {
-        $artists = [];
-        $songs = [];
-        $limit = $section->limit ?? 10; // Fallback limit to prevent un-bounded queries
+        $sections = AppSection::with([
+            'genre:id,name',
+            'playlist:id,name'
+        ])
+            ->where('page', 'home')
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->get([
+                'id',
+                'title',
+                'section_type',
+                'reference_id',
+                'sort_order',
+            ]);
 
-        switch ($section->section_type) {
-            case 'popular_artists':
-                $artists = Artist::where('show_profile', true)
-                    ->where('verified', true)
-                    ->withCount('followers')
-                    ->orderByDesc('followers_count')
-                    ->take($limit)
-                    ->get(['id', 'display_name', 'verified', 'profile_image']) // Only fetch needed fields
-                    ->map(fn($artist) => [
-                        'id' => $artist->id,
-                        'display_name' => $artist->display_name,
-                        'verified' => (bool)$artist->verified,
-                        'followers_count' => $artist->followers_count,
-                        'profile_image' => $artist->profile_image 
-                            ? url('storage/' . ltrim($artist->profile_image, '/')) 
-                            : null,
-                    ])
-                    ->values();
-                break;
+        return response()->json([
+            'sections' => $sections->map(function ($section) use ($request, $likedIds) {
 
-            case 'playlist':
-                if ($section->playlist) {
-                    $songs = $section->playlist->songs()
-                        ->latest()
-                        ->take($limit)
-                        ->get()
-                        ->map(fn($song) => SongTransformer::transform($request, $song, $likedIds))
-                        ->values();
-                }
-                break;
+                return [
+                    'id' => $section->id,
+                    'title' => $section->title,
+                    'section_type' => $section->section_type,
+                    'reference_id' => $section->reference_id,
+                    'sort_order' => $section->sort_order,
 
-            case 'genre':
-                if ($section->genre) {
-                    $songs = Song::where('genre_id', $section->genre->id)
-                        ->latest()
-                        ->take($limit)
-                        ->get()
-                        ->map(fn($song) => SongTransformer::transform($request, $song, $likedIds))
-                        ->values();
-                }
-                break;
+                    'genre' => $section->genre ? [
+                        'id' => $section->genre->id,
+                        'name' => $section->genre->name,
+                    ] : null,
 
-            case 'latest_songs':
-                $songs = Song::latest()
-                    ->take($limit)
-                    ->get()
-                    ->map(fn($song) => SongTransformer::transform($request, $song, $likedIds))
-                    ->values();
-                break;
+                    'playlist' => $section->playlist ? [
+                        'id' => $section->playlist->id,
+                        'name' => $section->playlist->name,
+                    ] : null,
 
-            case 'trending_songs':
-                $songs = Song::orderByDesc('play_count')
-                    ->take($limit)
-                    ->get()
-                    ->map(fn($song) => SongTransformer::transform($request, $song, $likedIds))
-                    ->values();
-                break;
+                    'artists' => $section->section_type === 'popular_artists'
+                        ? Artist::withCount('followers')
+                            ->where('show_profile', true)
+                            ->where('verified', true)
+                            ->orderByDesc('followers_count')
+                            ->take($section->limit)
+                            ->get()
+                            ->map(function ($artist) {
+                                return [
+                                    'id' => $artist->id,
+                                    'display_name' => $artist->display_name,
+                                    'verified' => (bool) $artist->verified,
+                                    'followers_count' => $artist->followers_count,
+                                    'profile_image' => $artist->profile_image
+                                        ? url('storage/' . ltrim($artist->profile_image, '/'))
+                                        : null,
+                                ];
+                            })
+                            ->values()
+                        : [],
 
-            case 'most_liked_songs':
-                // Optimized to avoid strict mode groupBy execution hangs
-                $songs = Song::withCount('likes')
-                    ->orderByDesc('likes_count')
-                    ->take($limit)
-                    ->get()
-                    ->map(fn($song) => SongTransformer::transform($request, $song, $likedIds))
-                    ->values();
-                break;
-        }
+                    'songs' => match ($section->section_type) {
 
-        return [
-            'id' => $section->id,
-            'title' => $section->title,
-            'section_type' => $section->section_type,
-            'reference_id' => $section->reference_id,
-            'sort_order' => $section->sort_order,
-            'genre' => $section->genre ? ['id' => $section->genre->id, 'name' => $section->genre->name] : null,
-            'playlist' => $section->playlist ? ['id' => $section->playlist->id, 'name' => $section->playlist->name] : null,
-            'artists' => $artists,
-            'songs' => $songs,
-        ];
-    });
+                        'playlist' => $section->playlist
+                            ? $section->playlist->songs()
+                                ->latest()
+                                ->take($section->limit)
+                                ->get()
+                                ->map(fn ($song) => SongTransformer::transform($request, $song, $likedIds))
+                                ->values()
+                            : [],
 
-    return response()->json([
-        'sections' => $response,
-    ]);
-}
+                        'genre' => $section->genre
+                            ? Song::where('genre_id', $section->genre->id)
+                                ->latest()
+                                ->take($section->limit)
+                                ->get()
+                                ->map(fn ($song) => SongTransformer::transform($request, $song, $likedIds))
+                                ->values()
+                            : [],
 
+                        'latest_songs' => Song::latest()
+                            ->take($section->limit)
+                            ->get()
+                            ->map(fn ($song) => SongTransformer::transform($request, $song, $likedIds))
+                            ->values(),
 
+                        'trending_songs' => Song::orderByDesc('play_count')
+                            ->take($section->limit)
+                            ->get()
+                            ->map(fn ($song) => SongTransformer::transform($request, $song, $likedIds))
+                            ->values(),
 
-    // public function home(Request $request)
-    // {
+                        'most_liked_songs' => Song::select('songs.*')
+                            ->leftJoin('liked_songs', 'songs.id', '=', 'liked_songs.song_id')
+                            ->selectRaw('COUNT(liked_songs.id) as likes_count')
+                            ->groupBy('songs.id')
+                            ->orderByDesc('likes_count')
+                            ->take($section->limit)
+                            ->get()
+                            ->map(fn ($song) => SongTransformer::transform($request, $song, $likedIds))
+                            ->values(),
 
-    //     $user = $request->user();
-
-    //     $likedIds = $user
-    //         ? DB::table('liked_songs')
-    //             ->where('user_id', $user->id)
-    //             ->pluck('song_id')
-    //             ->toArray()
-    //         : [];
-
-    //     $sections = AppSection::with([
-    //         'genre:id,name',
-    //         'playlist:id,name'
-    //     ])
-    //         ->where('page', 'home')
-    //         ->where('is_active', true)
-    //         ->orderBy('sort_order')
-    //         ->get([
-    //             'id',
-    //             'title',
-    //             'section_type',
-    //             'reference_id',
-    //             'sort_order',
-    //         ]);
-
-    //     return response()->json([
-    //         'sections' => $sections->map(function ($section) use ($request, $likedIds) {
-
-    //             return [
-    //                 'id' => $section->id,
-    //                 'title' => $section->title,
-    //                 'section_type' => $section->section_type,
-    //                 'reference_id' => $section->reference_id,
-    //                 'sort_order' => $section->sort_order,
-
-    //                 'genre' => $section->genre ? [
-    //                     'id' => $section->genre->id,
-    //                     'name' => $section->genre->name,
-    //                 ] : null,
-
-    //                 'playlist' => $section->playlist ? [
-    //                     'id' => $section->playlist->id,
-    //                     'name' => $section->playlist->name,
-    //                 ] : null,
-
-    //                 'artists' => $section->section_type === 'popular_artists'
-    //                     ? Artist::withCount('followers')
-    //                         ->where('show_profile', true)
-    //                         ->where('verified', true)
-    //                         ->orderByDesc('followers_count')
-    //                         ->take($section->limit)
-    //                         ->get()
-    //                         ->map(function ($artist) {
-    //                             return [
-    //                                 'id' => $artist->id,
-    //                                 'display_name' => $artist->display_name,
-    //                                 'verified' => (bool) $artist->verified,
-    //                                 'followers_count' => $artist->followers_count,
-    //                                 'profile_image' => $artist->profile_image
-    //                                     ? url('storage/' . ltrim($artist->profile_image, '/'))
-    //                                     : null,
-    //                             ];
-    //                         })
-    //                         ->values()
-    //                     : [],
-
-    //                 'songs' => match ($section->section_type) {
-
-    //                     'playlist' => $section->playlist
-    //                         ? $section->playlist->songs()
-    //                             ->latest()
-    //                             ->take($section->limit)
-    //                             ->get()
-    //                             ->map(fn ($song) => SongTransformer::transform($request, $song, $likedIds))
-    //                             ->values()
-    //                         : [],
-
-    //                     'genre' => $section->genre
-    //                         ? Song::where('genre_id', $section->genre->id)
-    //                             ->latest()
-    //                             ->take($section->limit)
-    //                             ->get()
-    //                             ->map(fn ($song) => SongTransformer::transform($request, $song, $likedIds))
-    //                             ->values()
-    //                         : [],
-
-    //                     'latest_songs' => Song::latest()
-    //                         ->take($section->limit)
-    //                         ->get()
-    //                         ->map(fn ($song) => SongTransformer::transform($request, $song, $likedIds))
-    //                         ->values(),
-
-    //                     'trending_songs' => Song::orderByDesc('play_count')
-    //                         ->take($section->limit)
-    //                         ->get()
-    //                         ->map(fn ($song) => SongTransformer::transform($request, $song, $likedIds))
-    //                         ->values(),
-
-    //                     'most_liked_songs' => Song::select('songs.*')
-    //                         ->leftJoin('liked_songs', 'songs.id', '=', 'liked_songs.song_id')
-    //                         ->selectRaw('COUNT(liked_songs.id) as likes_count')
-    //                         ->groupBy('songs.id')
-    //                         ->orderByDesc('likes_count')
-    //                         ->take($section->limit)
-    //                         ->get()
-    //                         ->map(fn ($song) => SongTransformer::transform($request, $song, $likedIds))
-    //                         ->values(),
-
-    //                     default => [],
-    //                 },
-    //             ];
-    //         }),
-    //     ]);
-    // }
+                        default => [],
+                    },
+                ];
+            }),
+        ]);
+    }
 
     public function search(Request $request)
     {
