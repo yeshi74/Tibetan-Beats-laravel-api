@@ -63,10 +63,7 @@ class SendAdminNotificationJob implements ShouldQueue
 
     public function failed(\Throwable $exception): void
     {
-        Log::error('SendAdminNotificationJob failed', [
-            'id' => $this->notification->id,
-            'error' => $exception->getMessage(),
-        ]);
+        
         // increment attempts or store details
         $this->notification->increment('attempts');
     }

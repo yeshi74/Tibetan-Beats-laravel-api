@@ -114,13 +114,6 @@ Route::middleware('auth:sanctum')->group(function () {
             \Log::warning('[/me] geoip failed: ' . $e->getMessage());
         }
 
-        \Log::info('[PremiumTrace][/api/me] returning DB premium state', [
-            'user_id' => $u->id,
-            'is_premium_raw' => $u->getRawOriginal('is_premium'),
-            'is_premium_cast' => (bool) $u->is_premium,
-            'premium_ends_at' => optional($u->premium_ends_at)->toIso8601String(),
-            'source_of_truth' => 'users.is_premium',
-        ]);
 
         return response()->json([
             'id'         => $u->id,

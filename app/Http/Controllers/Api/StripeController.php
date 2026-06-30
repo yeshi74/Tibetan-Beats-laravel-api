@@ -246,14 +246,7 @@ class StripeController extends Controller
                 if ($user) {
                     $active = ($type === 'customer.subscription.updated') &&
                               in_array($status, ['active', 'trialing'], true);
-                    Log::info('[PremiumTrace][StripeWebhook] subscription before sync', [
-                        'user_id' => $user->id,
-                        'type' => $type,
-                        'status' => $status,
-                        'active' => $active,
-                        'before_is_premium' => (bool) $user->is_premium,
-                        'before_is_premium_raw' => $user->getRawOriginal('is_premium'),
-                    ]);
+                   
 
                     $user->is_premium = $active ? 1 : 0;
                     $user->stripe_subscription_id = $sub->id ?? $user->stripe_subscription_id;

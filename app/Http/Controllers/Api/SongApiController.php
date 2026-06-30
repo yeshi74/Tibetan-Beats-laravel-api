@@ -125,12 +125,6 @@ class SongApiController extends Controller
             return response()->json(['message' => 'Not found'], 404);
         }
 
-        // non-fatal increment of play_count
-        // try {
-        //     $song->increment('play_count');
-        // } catch (\Throwable $e) {
-        //     Log::warning("[SongApiController::stream] increment failed: {$song->id} :: ".$e->getMessage());
-        // }
 
         if ($request->query('debug') === '1') {
             return response()->json([

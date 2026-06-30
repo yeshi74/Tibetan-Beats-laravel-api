@@ -23,12 +23,7 @@ class UserController extends Controller
         // Early detect low-level PHP upload errors and return a friendly message.
         $uploadErr = $this->detectUploadErrorMessage('image');
         if ($uploadErr !== null) {
-            Log::warning('[UserController::updateProfileImage] upload error', [
-                'user_id' => $user->id,
-                'error' => $uploadErr,
-                // include $_FILES diagnostics in dev only
-                'files' => app()->environment('production') ? null : ($_FILES['image'] ?? null),
-            ]);
+            
             return response()->json(['status' => 'error', 'message' => $uploadErr], 422);
         }
 

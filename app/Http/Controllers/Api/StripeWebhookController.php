@@ -28,7 +28,6 @@ class StripeWebhookController extends Controller
             return response('Invalid signature', 400);
         }
 
-        \Log::info('[Stripe] Event received', ['type' => $event->type]);
 
         switch ($event->type) {
             case 'checkout.session.completed': {
@@ -45,11 +44,7 @@ class StripeWebhookController extends Controller
                 }
 
                 if (!$user) {
-                    \Log::warning('[Stripe] Could not map checkout session to user', [
-                        'client_reference_id' => $s->client_reference_id ?? null,
-                        'customer_email'      => $s->customer_email ?? ($s->customer_details->email ?? null),
-                        'metadata'            => $s->metadata ?? null,
-                    ]);
+                   
                     break;
                 }
 
@@ -58,7 +53,6 @@ class StripeWebhookController extends Controller
                 $user->stripe_subscription_id = $s->subscription ?? $user->stripe_subscription_id;
                 $user->save();
 
-                \Log::info('[Stripe] Premium granted', ['user_id' => $user->id]);
                 break;
             }
 
@@ -81,10 +75,7 @@ class StripeWebhookController extends Controller
                 $user->stripe_subscription_id = $sub->id;
                 $user->save();
 
-                \Log::info('[Stripe] Subscription status sync', [
-                    'user_id' => $user->id,
-                    'status'  => $sub->status,
-                ]);
+               
                 break;
             }
 

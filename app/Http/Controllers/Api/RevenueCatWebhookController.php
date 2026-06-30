@@ -31,10 +31,6 @@ class RevenueCatWebhookController extends Controller
         $authorization = $request->header('Authorization');
 
         if ($configuredToken && !hash_equals('Bearer ' . $configuredToken, (string) $authorization)) {
-            Log::warning('[PremiumTrace][RevenueCat] webhook rejected', [
-                'reason' => 'invalid_authorization',
-                'has_authorization' => filled($authorization),
-            ]);
 
             return response()->json(['message' => 'Unauthorized'], 401);
         }
@@ -47,23 +43,9 @@ class RevenueCatWebhookController extends Controller
             ? Carbon::createFromTimestampMs((int) $expirationAtMs)
             : null;
 
-        Log::info('[PremiumTrace][RevenueCat] event received', [
-            'type' => $type,
-            'app_user_id' => $appUserId,
-            'product_id' => data_get($event, 'product_id'),
-            'entitlement_ids' => array_keys((array) data_get($event, 'entitlements', [])),
-            'expiration_at_ms' => $expirationAtMs,
-            'premium_ends_at' => optional($premiumEndsAt)->toIso8601String(),
-        ]);
 
         $user = $this->findUser($appUserId);
-
         if (!$user) {
-            Log::warning('[PremiumTrace][RevenueCat] user not found', [
-                'type' => $type,
-                'app_user_id' => $appUserId,
-                'aliases' => data_get($event, 'aliases'),
-            ]);
 
             return response()->json(['received' => true, 'user_found' => false]);
         }
@@ -84,17 +66,6 @@ class RevenueCatWebhookController extends Controller
         }
 
         $user->refresh();
-
-        Log::info('[PremiumTrace][RevenueCat] user premium sync', [
-            'user_id' => $user->id,
-            'type' => $type,
-            'before' => $before,
-            'after' => [
-                'is_premium' => (bool) $user->is_premium,
-                'premium_ends_at' => optional($user->premium_ends_at)->toIso8601String(),
-            ],
-            'handled' => in_array($type, array_merge(self::ACTIVE_EVENTS, self::INACTIVE_EVENTS), true),
-        ]);
 
         return response()->json(['received' => true, 'user_found' => true]);
     }
