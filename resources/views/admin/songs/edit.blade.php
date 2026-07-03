@@ -66,6 +66,32 @@
             </div>
 
             <div class="mb-4">
+                <label for="is_visible" class="block font-medium">
+                    Show in Mobile App
+                </label>
+
+                <select
+                    name="is_visible"
+                    id="is_visible"
+                    class="w-full bg-gray-800 text-white border border-gray-600 rounded px-4 py-2"
+                >
+                    <option value="1"
+                        {{ old('is_visible', $song->is_visible) ? 'selected' : '' }}>
+                        Yes
+                    </option>
+
+                    <option value="0"
+                        {{ !old('is_visible', $song->is_visible) ? 'selected' : '' }}>
+                        No (Hidden)
+                    </option>
+                </select>
+
+                <p class="text-sm text-gray-400 mt-1">
+                    Hidden songs remain on the server but won't appear in the mobile app.
+                </p>
+            </div>
+
+            <div class="mb-4">
                 <label class="block font-medium">Replace Audio (optional)</label>
                 <input type="file" name="file" class="mt-1 block w-full text-gray-200">
                 <p class="text-sm text-gray-400 mt-1">Current Audio: {{ $song->title }}</p>

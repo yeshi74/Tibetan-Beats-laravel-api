@@ -223,7 +223,7 @@ public function me(Request $request)
                 ->exists()
             : false;
 
-        $songs = Song::where('artist_id', $artist->id)
+        $songs = Song::visible()->where('artist_id', $artist->id)
             ->where('status', 'published')
             ->orderByDesc('created_at')
             ->get()

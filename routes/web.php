@@ -49,6 +49,8 @@ Route::middleware(['auth', 'is_admin'])
         // 🔹 Admin landing/dashboard
         Route::get('/', [AdminHomeController::class, 'index'])->name('dashboard');
 
+        Route::patch('songs/bulk-visibility', [SongAdminController::class, 'bulkVisibility'])->name('songs.bulkVisibility');
+
         Route::resource('albums', AlbumController::class);
         Route::resource('songs', SongAdminController::class);
 
@@ -87,10 +89,9 @@ Route::middleware(['auth', 'is_admin'])
         Route::patch('artists/{artist}/approve', [\App\Http\Controllers\Admin\ArtistAdminController::class, 'approve'])->name('artists.approve');
         Route::patch('artists/{artist}/reject', [\App\Http\Controllers\Admin\ArtistAdminController::class, 'reject'])->name('artists.reject');
 
-
-
         Route::patch('songs/{song}/approve', [SongAdminController::class, 'approve'])->name('songs.approve');
         Route::patch('songs/{song}/reject', [SongAdminController::class, 'reject'])->name('songs.reject');
+        Route::patch('songs/{song}/visibility', [SongAdminController::class, 'toggleVisibility'])->name('songs.toggleVisibility');
 
         Route::get('song-claims', [AdminSongClaimController::class, 'index'])->name('song-claims.index');
 

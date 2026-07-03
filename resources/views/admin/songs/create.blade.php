@@ -72,6 +72,25 @@
             </div>
 
             <div class="mb-4">
+                <label for="is_visible" class="block font-medium">
+                    Show in Mobile App
+                </label>
+
+                <select
+                    name="is_visible"
+                    id="is_visible"
+                    class="w-full bg-gray-800 text-white border border-gray-600 rounded px-4 py-2"
+                >
+                    <option value="1" selected>Yes</option>
+                    <option value="0">No (Hidden)</option>
+                </select>
+
+                <p class="text-sm text-gray-400 mt-1">
+                    Hidden songs are stored in the system but won't appear in the mobile app.
+                </p>
+            </div>
+
+            <div class="mb-4">
                 <label class="block font-medium">MP3/WAV File</label>
                 <input type="file" name="file" class="mt-1 block w-full text-gray-200" required>
             </div>

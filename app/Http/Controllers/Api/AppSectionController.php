@@ -88,6 +88,7 @@ class AppSectionController extends Controller
                         'playlist' => $section->playlist
                             ? $section->playlist->songs()
                                 ->visible()
+                                ->where('status', 'published')
                                 ->latest()
                                 ->take($section->limit)
                                 ->get()
@@ -96,8 +97,7 @@ class AppSectionController extends Controller
                             : [],
 
                         'genre' => $section->genre
-                            ? Song::where('genre_id', $section->genre->id)
-                                ->visible()
+                            ? Song::visible()->where('genre_id', $section->genre->id)->where('status', 'published')
                                 ->latest()
                                 ->take($section->limit)
                                 ->get()
@@ -105,19 +105,19 @@ class AppSectionController extends Controller
                                 ->values()
                             : [],
 
-                        'latest_songs' => Song::visible()->latest()
+                        'latest_songs' => Song::visible()->where('status', 'published')->latest()
                             ->take($section->limit)
                             ->get()
                             ->map(fn ($song) => SongTransformer::transform($request, $song, $likedIds))
                             ->values(),
 
-                        'trending_songs' => Song::visible()->orderByDesc('play_count')
+                        'trending_songs' => Song::visible()->where('status', 'published')->orderByDesc('play_count')
                             ->take($section->limit)
                             ->get()
                             ->map(fn ($song) => SongTransformer::transform($request, $song, $likedIds))
                             ->values(),
 
-                        'most_liked_songs' => Song::visible()->select('songs.*')
+                        'most_liked_songs' => Song::visible()->where('status', 'published')->select('songs.*')
                             ->leftJoin('liked_songs', 'songs.id', '=', 'liked_songs.song_id')
                             ->selectRaw('COUNT(liked_songs.id) as likes_count')
                             ->groupBy('songs.id')

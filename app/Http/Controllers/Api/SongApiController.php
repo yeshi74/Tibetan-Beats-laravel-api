@@ -59,13 +59,16 @@ class SongApiController extends Controller
 
         if ($user) {
             return $query->where(function ($q) use ($user) {
-                $q->where('status', 'published')
-                  ->orWhere('artist_user_id', $user->id)
-                  ->orWhere('artist_id', optional($user->artist)->id);
+                $q->where(function ($sub) {
+                        $sub->visible()
+                            ->where('status', 'published');
+                    })
+                ->orWhere('artist_user_id', $user->id)
+                ->orWhere('artist_id', optional($user->artist)->id);
             });
         }
 
-        return $query->where('status', 'published');
+        return $query->visible()->where('status', 'published');
     }
 
     /* -------------------------------- Endpoints ------------------------------- */
@@ -82,7 +85,8 @@ class SongApiController extends Controller
             ? DB::table('liked_songs')->where('user_id', $user->id)->pluck('song_id')->toArray()
             : [];
 
-        $songs = Song::where('status', 'published')
+        $songs = Song::visible()
+            ->where('status', 'published')
             ->latest()
             ->get()
             ->map(function ($song) use (
@@ -121,7 +125,10 @@ class SongApiController extends Controller
         $user = $this->resolveUser($request);
 
         // Block streaming for unpublished unless admin/owner
-        if ($song->status !== 'published' && !$this->canSeeUnpublished($user, $song)) {
+        if (
+            (!$song->is_visible || $song->status !== 'published')
+            && !$this->canSeeUnpublished($user, $song)
+        ) {
             return response()->json(['message' => 'Not found'], 404);
         }
 
@@ -220,7 +227,7 @@ class SongApiController extends Controller
             ? DB::table('liked_songs')->where('user_id', $user->id)->pluck('song_id')->toArray()
             : [];
 
-        $songs = Song::orderByDesc('play_count')
+        $songs = Song::visible()->orderByDesc('play_count')
             ->take(12)
             ->get()
             ->map(fn($s) => SongTransformer::transform(
@@ -476,7 +483,7 @@ public function search(Request $request)
             ? DB::table('liked_songs')->where('user_id', $user->id)->pluck('song_id')->toArray()
             : [];
 
-        $songs = Song::orderBy('created_at', 'desc')->take(15)->get()
+        $songs = Song::visible()->where('status', 'published')->orderBy('created_at', 'desc')->take(15)->get()
             ->map(fn ($s) => SongTransformer::transform(
                 $request,
                 $s,
@@ -496,7 +503,7 @@ public function search(Request $request)
             ? DB::table('liked_songs')->where('user_id', $user->id)->pluck('song_id')->toArray()
             : [];
 
-        $songs = Song::where('genre_id', $id)
+        $songs = Song::visible()->where('status', 'published')->where('genre_id', $id)
             ->latest()
             ->take(25)
             ->get()
@@ -519,7 +526,7 @@ public function search(Request $request)
             ? DB::table('liked_songs')->where('user_id', $user->id)->pluck('song_id')->toArray()
             : [];
 
-        $songs = Song::where('genre_id', $id)
+        $songs = Song::visible()->where('status', 'published')->where('genre_id', $id)
             ->latest()
             ->take(25)
             ->get()
@@ -602,7 +609,7 @@ public function search(Request $request)
             ->join('liked_songs', 'songs.id', '=', 'liked_songs.song_id')
             ->where('liked_songs.user_id', $user->id)
             ->when(!$this->isAdmin($user), function ($q) {
-                $q->where('songs.status', 'published');
+                $q->where('songs.status', 'published')->where('songs.is_visible', true);
             })
             ->orderByDesc('liked_songs.created_at')
             ->select('songs.*')
@@ -626,7 +633,7 @@ public function search(Request $request)
             ? DB::table('liked_songs')->where('user_id', $user->id)->pluck('song_id')->toArray()
             : [];
 
-        $songs = Song::select('songs.*')
+        $songs = Song::visible()->where('status', 'published')->select('songs.*')
             ->leftJoin('liked_songs', 'songs.id', '=', 'liked_songs.song_id')
             ->selectRaw('COUNT(liked_songs.id) as likes_count')
             ->groupBy('songs.id')
@@ -717,7 +724,7 @@ public function search(Request $request)
                 ->toArray()
             : [];
 
-        $songs = Song::where('status', 'published')
+        $songs = Song::visible()->where('status', 'published')
             ->latest('created_at')
             ->take(15)
             ->get()

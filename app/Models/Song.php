@@ -23,6 +23,7 @@ class Song extends Model
         'genre_id',
         'status',
         'is_published',
+        'is_visible', 
         'created_at', 'updated_at',
         'rejection_reason',
     ];
@@ -32,6 +33,7 @@ class Song extends Model
     protected $casts = [
         'play_count' => 'integer',
         'is_published' => 'boolean',
+        'is_visible' => 'boolean',
     ];
 
         /**
@@ -54,6 +56,11 @@ class Song extends Model
         if (property_exists($user, 'is_admin') && $user->is_admin) return true;
         if (method_exists($user, 'hasRole') && $user->hasRole('admin')) return true;
         return (int) $this->artist_id === (int) ($user->id ?? 0);
+    }
+
+    public function scopeVisible($query)
+    {
+        return $query->where('is_visible', true);
     }
 
     public function artistRecord()

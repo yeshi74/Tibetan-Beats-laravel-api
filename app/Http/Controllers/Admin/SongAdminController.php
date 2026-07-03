@@ -34,11 +34,30 @@ class SongAdminController extends Controller
             $query->where('album_id', $request->album_id);
         }
 
+        if ($request->filled('visibility')) {
+            $query->where('is_visible', (bool) $request->visibility);
+        }
+
         $songs = $query->paginate(15)->withQueryString();
+        $stats = [
+            'total' => Song::count(),
+            'visible' => Song::where('is_visible', true)->count(),
+            'hidden' => Song::where('is_visible', false)->count(),
+            'published' => Song::where('status', 'published')->count(),
+            'pending' => Song::where('status', 'pending')->count(),
+        ];
         $albums = Album::all();
         $genres = \App\Models\Genre::orderBy('name')->get();
 
-        return view('admin.songs.index', compact('songs', 'albums', 'genres'));
+        return view(
+            'admin.songs.index',
+            compact(
+                'songs',
+                'albums',
+                'genres',
+                'stats'
+            )
+        );
     }
 
     public function create()
@@ -75,6 +94,7 @@ class SongAdminController extends Controller
             'cover_image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'album_id'    => 'nullable|exists:albums,id',
             'genre_id'    => 'required|exists:genres,id',
+            'is_visible' => 'required|in:0,1',
         ], [
             'file.max' => 'Audio file too large. Maximum is 50MB.',
             'file.mimes' => 'Invalid audio format. Allowed: mp3, wav.',
@@ -96,6 +116,7 @@ class SongAdminController extends Controller
             'cover_image' => $coverPath,
             'album_id'    => $validated['album_id'] ?? null,
             'genre_id'    => $validated['genre_id'],
+            'is_visible' => (bool) $validated['is_visible'],
         ]);
 
         return redirect()->route('admin.songs.index')
@@ -117,11 +138,14 @@ class SongAdminController extends Controller
             'artist'      => 'nullable|string|max:255',
             'album_id'    => 'nullable|exists:albums,id',
             'genre_id'    => 'required|exists:genres,id',
+            'is_visible' => 'required|in:0,1',
             'file'        => 'nullable|file|mimes:mp3,wav|max:51200',
             'cover_image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
-        $data = $request->only(['title', 'artist', 'album_id', 'genre_id']);
+        $data = $request->only(['title', 'artist', 'album_id', 'genre_id', 'is_visible']);
+
+        $data['is_visible'] = (bool) $request->is_visible;
 
         if ($request->hasFile('cover_image')) {
             if ($song->cover_image) {
@@ -220,13 +244,41 @@ class SongAdminController extends Controller
             );
     }
 
-    /**
-     * Detect low-level PHP file upload errors and return a friendly message
-     * or null if no upload error detected (i.e. file either not present or uploaded ok).
-     *
-     * This helps when PHP drops the upload due to post_max_size/upload_max_filesize
-     * — the Laravel validator otherwise reports "The file failed to upload."
-     */
+    public function toggleVisibility(Song $song)
+    {
+        $song->update([
+            'is_visible' => !$song->is_visible,
+        ]);
+
+        return redirect()
+            ->back()
+            ->with(
+                'success',
+                "'{$song->title}' is now " .
+                ($song->is_visible ? 'Visible' : 'Hidden') .
+                ' in the mobile app.'
+            );
+    }
+
+    public function bulkVisibility(Request $request)
+    {
+        $validated = $request->validate([
+            'song_ids' => 'required|array|min:1',
+            'song_ids.*' => 'exists:songs,id',
+            'is_visible' => 'required|boolean',
+        ]);
+
+        Song::whereIn('id', $validated['song_ids'])
+            ->update([
+                'is_visible' => $validated['is_visible'],
+            ]);
+
+        return back()->with(
+            'success',
+            count($validated['song_ids']) . ' song(s) updated successfully.'
+        );
+    }
+
     private function checkUploadError(Request $request, string $field): ?string
     {
         // If no file input present in $_FILES, nothing to check
