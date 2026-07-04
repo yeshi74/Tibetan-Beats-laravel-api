@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\AppSetting;
 use Illuminate\Http\Request;
+use App\Support\AppConfigRegistry;
 
 class AppSettingController extends Controller
 {
@@ -12,18 +13,47 @@ class AppSettingController extends Controller
     {
         $settings = AppSetting::pluck('value', 'key');
 
-        return view('admin.settings.edit', compact('settings'));
+        $registry = AppConfigRegistry::all();
+
+        $groupedRegistry = collect($registry)
+            ->groupBy('group', preserveKeys: true);
+
+        return view(
+            'admin.settings.edit',
+            compact(
+                'settings',
+                'groupedRegistry'
+            )
+        );
     }
 
     public function update(Request $request)
     {
-        AppSetting::updateOrCreate(
-            ['key' => 'home_greeting'],
-            ['value' => $request->home_greeting]
-        );
+        foreach (AppConfigRegistry::all() as $key => $setting) {
+
+            $value = match ($setting['type']) {
+
+                'boolean' => $request->has($key),
+
+                default => $request->input(
+                    $key,
+                    $setting['default']
+                ),
+            };
+
+            AppSetting::set(
+                $key,
+                $value
+            );
+        }
 
         return redirect()
             ->back()
-            ->with('success', 'Settings updated successfully.');
+            ->with(
+                'success',
+                'Settings updated successfully.'
+            );
     }
+
+
 }

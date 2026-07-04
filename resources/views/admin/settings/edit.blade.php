@@ -14,18 +14,67 @@
     <form action="{{ route('admin.settings.update') }}" method="POST">
         @csrf
 
-        <div class="mb-3">
-            <label class="form-label">
-                Home Greeting
-            </label>
+        <h4 class="mt-4 mb-3">General</h4>
 
-            <input
-                type="text"
-                name="home_greeting"
-                value="{{ $settings['home_greeting'] ?? '' }}"
-                class="form-control"
-            >
-        </div>
+@foreach(($groupedRegistry['General'] ?? []) as $key => $setting)
+
+    @include(
+        'admin.settings.fields.' . $setting['type'],
+        compact('key', 'setting', 'settings')
+    )
+
+@endforeach
+
+        <hr>
+
+
+<h4 class="mt-4 mb-3">Feature Flags</h4>
+
+@foreach(($groupedRegistry['Features'] ?? []) as $key => $setting)
+
+    @include(
+        'admin.settings.fields.' . $setting['type'],
+        compact('key', 'setting', 'settings')
+    )
+
+@endforeach
+
+<hr>
+
+<h4 class="mt-4 mb-3">Limits</h4>
+
+@foreach(($groupedRegistry['Limits'] ?? []) as $key => $setting)
+
+    @include(
+        'admin.settings.fields.' . $setting['type'],
+        compact('key', 'setting', 'settings')
+    )
+
+@endforeach
+
+<h4 class="mt-4 mb-3">Maintenance</h4>
+
+@foreach(($groupedRegistry['Maintenance'] ?? []) as $key => $setting)
+
+    @include(
+        'admin.settings.fields.' . $setting['type'],
+        compact('key', 'setting', 'settings')
+    )
+
+@endforeach
+
+<hr>
+
+<h4 class="mt-4 mb-3">Version Control</h4>
+
+@foreach(($groupedRegistry['Version'] ?? []) as $key => $setting)
+
+    @include(
+        'admin.settings.fields.' . $setting['type'],
+        compact('key', 'setting', 'settings')
+    )
+
+@endforeach
 
         <button
             type="submit"
@@ -34,6 +83,9 @@
             Save Settings
         </button>
     </form>
+
+    <hr>
+
 
 </div>
 @endsection
