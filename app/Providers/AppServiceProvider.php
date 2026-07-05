@@ -5,6 +5,8 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\View;
+use App\Models\SupportMessage;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -27,5 +29,13 @@ class AppServiceProvider extends ServiceProvider
         });
 
         Paginator::useBootstrapFive();
+
+        View::composer('layouts.admin', function ($view) {
+            $openSupportCount = SupportMessage::where('status', 'open')->count();
+
+            $view->with('openSupportCount', $openSupportCount);
+        });
+
+        
     }
 }

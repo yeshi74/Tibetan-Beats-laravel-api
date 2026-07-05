@@ -21,6 +21,7 @@ use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminHomeController;
 use App\Http\Controllers\Admin\ArtistApplicationController;
 use App\Http\Controllers\PrivacyPolicyController;
+use App\Http\Controllers\Admin\SupportMessageController;
 
 
 Route::get('/', function () {
@@ -138,6 +139,12 @@ Route::middleware(['auth', 'is_admin'])
         Route::post('/artist-applications/{application}/approve',[ArtistApplicationController::class, 'approve'])->name('artist-applications.approve');
 
         Route::post('/artist-applications/{application}/reject',[ArtistApplicationController::class, 'reject'])->name('artist-applications.reject');
+
+        Route::get('/support',[SupportMessageController::class, 'index'])->name('support.index');
+
+        Route::get('/support/{supportMessage}',[SupportMessageController::class, 'show'])->name('support.show');
+
+        Route::patch('/support/{supportMessage}/resolve',[SupportMessageController::class, 'resolve'])->name('support.resolve');
 
 
     });

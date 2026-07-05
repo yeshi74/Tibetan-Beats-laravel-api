@@ -152,5 +152,10 @@ class User extends Authenticatable
         return $this->hasMany(Notification::class);
     }
 
+    public function supportMessages()
+    {
+        return $this->hasMany(SupportMessage::class);
+    }
+
 
 }

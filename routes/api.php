@@ -27,6 +27,8 @@ use App\Http\Controllers\Api\ArtistClaimController;
 use App\Http\Controllers\Api\AppSectionController;
 use App\Http\Controllers\Api\AppSettingController;
 use App\Http\Controllers\Api\DedicationCommentController;
+use App\Http\Controllers\Api\SupportController;
+use Illuminate\Support\Facades\Log;
 
 /* -------------------- Public (no auth) -------------------- */
 
@@ -111,7 +113,7 @@ Route::middleware('auth:sanctum')->group(function () {
             $country = $location->country ?? $country;
             $currency = $location->currency ?? $currency;
         } catch (\Throwable $e) {
-            \Log::warning('[/me] geoip failed: ' . $e->getMessage());
+            Log::warning('[/me] geoip failed: ' . $e->getMessage());
         }
 
 
@@ -189,11 +191,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/artists/{artist}/follow',[ArtistFollowController::class, 'follow']);
 
     Route::delete('/artists/{artist}/follow',[ArtistFollowController::class, 'unfollow']);
-
     
-
-    
-
     Route::get('/notifications',[NotificationController::class, 'index']);
 
     Route::post('/notifications/{notification}/read',[NotificationController::class, 'markRead']);
@@ -225,6 +223,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/comments/{comment}',[DedicationCommentController::class, 'destroy']);
 
     Route::get('/artist/status',[ArtistController::class, 'artistStatus']);
+
+    Route::post('/support', [SupportController::class, 'store']);
 
 
 
