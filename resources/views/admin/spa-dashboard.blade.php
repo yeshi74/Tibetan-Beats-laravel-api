@@ -148,7 +148,7 @@
                     <div class="col-span-3 bg-gray-800 p-6 rounded shadow">
                         <h2 class="text-xl font-semibold text-white mb-2">Welcome to Admin Panel</h2>
 
-                        <div class="grid grid-cols-4 gap-4 mb-6">
+                        <div class="grid grid-cols-2 gap-4 mb-6">
 
                             <div class="bg-gray-700 p-4 rounded">
                                 <div class="text-sm text-gray-400">Users</div>
@@ -195,7 +195,52 @@
                                         </div>
                                     @endforeach
                                 </div>
+
+                                <div class="bg-gray-700 p-4 rounded">
+                                    <h3 class="text-lg font-semibold mb-4 text-white">
+                                        ❤️ Top 5 Liked Songs
+                                    </h3>
+
+                                    @foreach ($topLikedSongs as $index => $song)
+                                        <div
+                                            class="flex items-center justify-between py-2 border-b border-gray-600 last:border-0">
+                                            <div class="flex items-center gap-3 flex-1 min-w-0">
+
+                                                <span class="w-6 text-center font-bold text-pink-400">
+                                                    @if ($index == 0)
+                                                        🥇
+                                                    @elseif($index == 1)
+                                                        🥈
+                                                    @elseif($index == 2)
+                                                        🥉
+                                                    @else
+                                                        {{ $index + 1 }}
+                                                    @endif
+                                                </span>
+
+                                                <span class="text-white truncate">
+                                                    {{ $song->title }}
+                                                </span>
+
+                                            </div>
+
+                                            <span class="text-pink-400 font-semibold">
+                                                {{ number_format($song->liked_songs_count) }} likes
+                                            </span>
+                                        </div>
+                                    @endforeach
+                                </div>
                             </div>
+
+
+
+
+
+                        </div>
+
+
+
+                        <div class="grid grid-cols-4 gap-4 mb-6">
 
                             <div class="bg-gray-700 p-4 rounded">
                                 <div class="text-sm text-gray-400">Artists</div>
@@ -206,10 +251,6 @@
                                 <div class="text-sm text-gray-400">Playlists</div>
                                 <div class="text-3xl font-bold">{{ $playlists }}</div>
                             </div>
-
-                        </div>
-
-                        <div class="grid grid-cols-4 gap-4 mb-6">
 
                             <div class="bg-yellow-700 p-4 rounded">
                                 <div class="text-sm text-yellow-100">Pending Songs</div>

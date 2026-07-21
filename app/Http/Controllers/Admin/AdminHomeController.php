@@ -50,6 +50,8 @@ class AdminHomeController extends Controller
                 ->take(5)
                 ->get(),
 
+            'topLikedSongs' => Song::withCount('likedSongs')->orderByDesc('liked_songs_count')->take(5)->get(),
+
         ]);
     }
 }
