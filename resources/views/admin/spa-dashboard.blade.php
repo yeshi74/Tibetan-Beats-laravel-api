@@ -167,6 +167,36 @@
                                 </div>
                             </div>
 
+
+
+                            <div class="col-span-2 bg-gray-700 p-4 rounded">
+
+                                <div class="col-span-2 bg-gray-700 p-4 rounded">
+                                    <h3 class="text-lg font-semibold mb-4 text-white">
+                                        🏆 Top 5 Played Songs
+                                    </h3>
+
+                                    @foreach ($topPlayedSongs as $index => $song)
+                                        <div
+                                            class="flex items-center justify-between py-2 border-b border-gray-600 last:border-0">
+                                            <div class="flex items-center gap-3">
+                                                <span class="w-6 text-center font-bold text-yellow-400">
+                                                    {{ $index + 1 }}
+                                                </span>
+
+                                                <span class="text-white">
+                                                    {{ $song->title }}
+                                                </span>
+                                            </div>
+
+                                            <span class="text-cyan-400 font-semibold">
+                                                {{ number_format($song->play_count) }} plays
+                                            </span>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+
                             <div class="bg-gray-700 p-4 rounded">
                                 <div class="text-sm text-gray-400">Artists</div>
                                 <div class="text-3xl font-bold">{{ $artists }}</div>

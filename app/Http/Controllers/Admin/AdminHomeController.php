@@ -41,6 +41,15 @@ class AdminHomeController extends Controller
 
             'totalPlays' => Song::sum('play_count'),
 
+            'mostPlayedSong' => Song::with('artist')
+                ->orderByDesc('play_count')
+                ->first(),
+
+            'topPlayedSongs' => Song::with('artist')
+                ->orderByDesc('play_count')
+                ->take(5)
+                ->get(),
+
         ]);
     }
 }

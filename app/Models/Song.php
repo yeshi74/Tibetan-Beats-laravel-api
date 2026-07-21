@@ -102,6 +102,11 @@ class Song extends Model
 
         return asset('storage/' . ltrim($this->cover_image, '/'));
     }
+
+    public function artist()
+    {
+        return $this->belongsTo(Artist::class);
+    }
 }
 
 
