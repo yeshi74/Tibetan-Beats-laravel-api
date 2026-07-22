@@ -94,7 +94,7 @@ Route::get('/home/sections', [AppSectionController::class, 'home']);
 
 
 /* -------------------- Authenticated (requires sanctum) -------------------- */
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'last_seen'])->group(function () {
     // 👤 Profile
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user',    [AuthController::class, 'user']);

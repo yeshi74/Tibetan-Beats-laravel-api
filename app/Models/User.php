@@ -42,6 +42,7 @@ class User extends Authenticatable
         'is_premium' => 'boolean',
         'premium_ends_at' => 'datetime',
         'premium_expires_at' => 'datetime',
+        'last_seen_at' => 'datetime',
         // 'password' => 'hashed', // if you use this feature, make sure framework supports it
     ];
 

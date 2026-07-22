@@ -211,6 +211,32 @@
 
                         <div class="col-span-2 bg-gray-700 p-4 rounded">
 
+                            <h5>🟢 Currently Active ({{ $activeUsersCount }})</h5>
+
+                            @forelse($activeUsers as $user)
+                                <div class="mb-3 border-bottom pb-2">
+                                    <strong>{{ $user->name }}</strong><br>
+                                    <small>{{ $user->email }}</small><br>
+                                    <small class="text-muted">{{ $user->last_seen_at->diffForHumans() }}</small>
+                                </div>
+                            @empty
+                                <p class="text-muted">No active users.</p>
+                            @endforelse
+
+                            <h5>📅 Active Today ({{ $todayUsersCount }})</h5>
+
+                            @forelse($todayUsers as $user)
+                                <div class="mb-3 border-bottom pb-2">
+                                    <strong>{{ $user->name }}</strong><br>
+                                    <small>{{ $user->email }}</small><br>
+                                    <small class="text-muted">
+                                        {{ $user->last_seen_at->format('h:i A') }}
+                                    </small>
+                                </div>
+                            @empty
+                                <p class="text-muted">No active users today.</p>
+                            @endforelse
+
                             <div class="col-span-2 bg-gray-700 p-4 rounded">
                                 <h3 class="text-lg font-semibold mb-4 text-white">
                                     👥 Latest Registered Users

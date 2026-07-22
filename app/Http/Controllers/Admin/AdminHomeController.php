@@ -57,6 +57,26 @@ class AdminHomeController extends Controller
 
             'recentlyPlayed' => RecentlyPlayed::with(['user', 'song'])->latest()->take(5)->get(),
 
+            // Currently Active Users (last 2 minutes)
+            'activeUsers' => User::whereNotNull('last_seen_at')
+                ->where('last_seen_at', '>=', now()->subMinutes(2))
+                ->latest('last_seen_at')
+                ->take(10)
+                ->get(),
+
+            'activeUsersCount' => User::whereNotNull('last_seen_at')
+                ->where('last_seen_at', '>=', now()->subMinutes(2))
+                ->count(),
+
+            // Today's Active Users
+            'todayUsers' => User::whereDate('last_seen_at', today())
+                ->latest('last_seen_at')
+                ->take(10)
+                ->get(),
+
+            'todayUsersCount' => User::whereDate('last_seen_at', today())
+                ->count(),
+
         ]);
     }
 }
