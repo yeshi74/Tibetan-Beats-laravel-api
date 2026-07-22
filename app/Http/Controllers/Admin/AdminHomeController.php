@@ -9,6 +9,7 @@ use App\Models\Artist;
 use App\Models\Playlist;
 use App\Models\Dedication;
 use App\Models\ArtistClaim;
+use App\Models\RecentlyPlayed;
 
 class AdminHomeController extends Controller
 {
@@ -51,6 +52,10 @@ class AdminHomeController extends Controller
                 ->get(),
 
             'topLikedSongs' => Song::withCount('likedSongs')->orderByDesc('liked_songs_count')->take(5)->get(),
+
+            'recentUsers' => User::latest()->take(5)->get(),
+
+            'recentlyPlayed' => RecentlyPlayed::with(['user', 'song'])->latest()->take(5)->get(),
 
         ]);
     }

@@ -113,6 +113,13 @@ class Song extends Model
         return $this->hasMany(LikedSong::class);
     }
 
+    public function recentlyPlayed()
+    {
+        return $this->hasMany(RecentlyPlayed::class, 'song_id');
+    }
+
+
+
 }
 
 

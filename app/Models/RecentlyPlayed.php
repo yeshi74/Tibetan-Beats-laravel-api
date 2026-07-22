@@ -18,6 +18,11 @@ class RecentlyPlayed extends Model
         return $this->belongsTo(Song::class,'song_id');
     }
 
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
 
 
 }

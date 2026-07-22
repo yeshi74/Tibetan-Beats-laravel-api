@@ -148,7 +148,7 @@
                     <div class="col-span-3 bg-gray-800 p-6 rounded shadow">
                         <h2 class="text-xl font-semibold text-white mb-2">Welcome to Admin Panel</h2>
 
-                        <div class="grid grid-cols-2 gap-4 mb-6">
+                        <div class="grid grid-cols-4 gap-4 mb-6">
 
                             <div class="bg-gray-700 p-4 rounded">
                                 <div class="text-sm text-gray-400">Users</div>
@@ -166,81 +166,6 @@
                                     {{ number_format($totalPlays) }}
                                 </div>
                             </div>
-
-
-
-                            <div class="col-span-2 bg-gray-700 p-4 rounded">
-
-                                <div class="col-span-2 bg-gray-700 p-4 rounded">
-                                    <h3 class="text-lg font-semibold mb-4 text-white">
-                                        🏆 Top 5 Played Songs
-                                    </h3>
-
-                                    @foreach ($topPlayedSongs as $index => $song)
-                                        <div
-                                            class="flex items-center justify-between py-2 border-b border-gray-600 last:border-0">
-                                            <div class="flex items-center gap-3">
-                                                <span class="w-6 text-center font-bold text-yellow-400">
-                                                    {{ $index + 1 }}
-                                                </span>
-
-                                                <span class="text-white">
-                                                    {{ $song->title }}
-                                                </span>
-                                            </div>
-
-                                            <span class="text-cyan-400 font-semibold">
-                                                {{ number_format($song->play_count) }} plays
-                                            </span>
-                                        </div>
-                                    @endforeach
-                                </div>
-
-                                <div class="bg-gray-700 p-4 rounded">
-                                    <h3 class="text-lg font-semibold mb-4 text-white">
-                                        ❤️ Top 5 Liked Songs
-                                    </h3>
-
-                                    @foreach ($topLikedSongs as $index => $song)
-                                        <div
-                                            class="flex items-center justify-between py-2 border-b border-gray-600 last:border-0">
-                                            <div class="flex items-center gap-3 flex-1 min-w-0">
-
-                                                <span class="w-6 text-center font-bold text-pink-400">
-                                                    @if ($index == 0)
-                                                        🥇
-                                                    @elseif($index == 1)
-                                                        🥈
-                                                    @elseif($index == 2)
-                                                        🥉
-                                                    @else
-                                                        {{ $index + 1 }}
-                                                    @endif
-                                                </span>
-
-                                                <span class="text-white truncate">
-                                                    {{ $song->title }}
-                                                </span>
-
-                                            </div>
-
-                                            <span class="text-pink-400 font-semibold">
-                                                {{ number_format($song->liked_songs_count) }} likes
-                                            </span>
-                                        </div>
-                                    @endforeach
-                                </div>
-                            </div>
-
-
-
-
-
-                        </div>
-
-
-
-                        <div class="grid grid-cols-4 gap-4 mb-6">
 
                             <div class="bg-gray-700 p-4 rounded">
                                 <div class="text-sm text-gray-400">Artists</div>
@@ -280,6 +205,126 @@
                                 </div>
                             </div>
 
+                        </div>
+
+
+
+                        <div class="col-span-2 bg-gray-700 p-4 rounded">
+
+                            <div class="col-span-2 bg-gray-700 p-4 rounded">
+                                <h3 class="text-lg font-semibold mb-4 text-white">
+                                    👥 Latest Registered Users
+                                </h3>
+
+                                @foreach ($recentUsers as $user)
+                                    <div
+                                        class="flex items-center justify-between py-2 border-b border-gray-600 last:border-0">
+
+                                        <div class="flex-1 min-w-0">
+                                            <div class="text-white font-medium truncate">
+                                                {{ $user->name }}
+                                            </div>
+
+                                            <div class="text-sm text-gray-400 truncate">
+                                                {{ $user->email }}
+                                            </div>
+                                        </div>
+
+                                        <div class="text-xs text-gray-500 whitespace-nowrap ml-4">
+                                            {{ $user->created_at->diffForHumans() }}
+                                        </div>
+
+                                    </div>
+                                @endforeach
+                            </div>
+
+                            <div class="bg-gray-700 p-4 rounded">
+                                <h3 class="text-lg font-semibold mb-4 text-white">
+                                    🎧 Recently Played
+                                </h3>
+
+                                @foreach ($recentlyPlayed as $play)
+                                    <div class="py-2 border-b border-gray-600 last:border-0">
+
+                                        <div class="font-medium text-white">
+                                            {{ $play->user->name }}
+                                        </div>
+
+                                        <div class="text-sm text-gray-400">
+                                            {{ $play->user->email }}
+                                        </div>
+
+                                        <div class="text-cyan-400 mt-1">
+                                            ▶ {{ $play->song->title }}
+                                        </div>
+
+                                        <div class="text-xs text-gray-500 mt-1">
+                                            {{ $play->created_at->diffForHumans() }}
+                                        </div>
+
+                                    </div>
+                                @endforeach
+                            </div>
+
+                            <div class="col-span-2 bg-gray-700 p-4 rounded">
+                                <h3 class="text-lg font-semibold mb-4 text-white">
+                                    🏆 Top 5 Played Songs
+                                </h3>
+
+                                @foreach ($topPlayedSongs as $index => $song)
+                                    <div
+                                        class="flex items-center justify-between py-2 border-b border-gray-600 last:border-0">
+                                        <div class="flex items-center gap-3">
+                                            <span class="w-6 text-center font-bold text-yellow-400">
+                                                {{ $index + 1 }}
+                                            </span>
+
+                                            <span class="text-white">
+                                                {{ $song->title }}
+                                            </span>
+                                        </div>
+
+                                        <span class="text-cyan-400 font-semibold">
+                                            {{ number_format($song->play_count) }} plays
+                                        </span>
+                                    </div>
+                                @endforeach
+                            </div>
+
+                            <div class="bg-gray-700 p-4 rounded">
+                                <h3 class="text-lg font-semibold mb-4 text-white">
+                                    ❤️ Top 5 Liked Songs
+                                </h3>
+
+                                @foreach ($topLikedSongs as $index => $song)
+                                    <div
+                                        class="flex items-center justify-between py-2 border-b border-gray-600 last:border-0">
+                                        <div class="flex items-center gap-3 flex-1 min-w-0">
+
+                                            <span class="w-6 text-center font-bold text-pink-400">
+                                                @if ($index == 0)
+                                                    🥇
+                                                @elseif($index == 1)
+                                                    🥈
+                                                @elseif($index == 2)
+                                                    🥉
+                                                @else
+                                                    {{ $index + 1 }}
+                                                @endif
+                                            </span>
+
+                                            <span class="text-white truncate">
+                                                {{ $song->title }}
+                                            </span>
+
+                                        </div>
+
+                                        <span class="text-pink-400 font-semibold">
+                                            {{ number_format($song->liked_songs_count) }} likes
+                                        </span>
+                                    </div>
+                                @endforeach
+                            </div>
                         </div>
 
                         <h3 class="text-lg font-semibold text-white mt-6 mb-3">

@@ -157,5 +157,10 @@ class User extends Authenticatable
         return $this->hasMany(SupportMessage::class);
     }
 
+    public function recentlyPlayed()
+    {
+        return $this->hasMany(RecentlyPlayed::class, 'user_id');
+    }
+
 
 }
