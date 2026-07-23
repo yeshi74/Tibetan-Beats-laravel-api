@@ -87,6 +87,7 @@ class SongApiController extends Controller
 
         $songs = Song::visible()
             ->where('status', 'published')
+            ->whereNotIn('genre_id', [5, 15])
             ->latest()
             ->get()
             ->map(function ($song) use (
@@ -227,7 +228,8 @@ class SongApiController extends Controller
             ? DB::table('liked_songs')->where('user_id', $user->id)->pluck('song_id')->toArray()
             : [];
 
-        $songs = Song::visible()->orderByDesc('play_count')
+        $songs = Song::visible()->whereNotIn('genre_id', [5, 15])
+            ->orderByDesc('play_count')
             ->take(12)
             ->get()
             ->map(fn($s) => SongTransformer::transform(
@@ -633,7 +635,9 @@ public function search(Request $request)
             ? DB::table('liked_songs')->where('user_id', $user->id)->pluck('song_id')->toArray()
             : [];
 
-        $songs = Song::visible()->where('status', 'published')->select('songs.*')
+        $songs = Song::visible()->where('status', 'published')
+            ->whereNotIn('genre_id', [5, 15])
+            ->select('songs.*')
             ->leftJoin('liked_songs', 'songs.id', '=', 'liked_songs.song_id')
             ->selectRaw('COUNT(liked_songs.id) as likes_count')
             ->groupBy('songs.id')
