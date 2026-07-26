@@ -18,7 +18,7 @@
             <div class="mb-4">
                 <label class="block font-medium">Replace Cover Image</label>
                 <input type="file" name="cover_image" class="mt-1 block w-full text-gray-200">
-                @if($song->cover_image_url)
+                @if ($song->cover_image_url)
                     <img src="{{ $song->cover_image_url }}" alt="Cover" class="mt-2 h-20 rounded shadow">
                 @endif
             </div>
@@ -26,23 +26,35 @@
             <div class="mb-4">
                 <label class="block font-medium">Title</label>
                 <input type="text" name="title" value="{{ old('title', $song->title) }}"
-                       class="w-full bg-gray-800 text-white border border-gray-600 rounded px-4 py-2"
-                       required>
+                    class="w-full bg-gray-800 text-white border border-gray-600 rounded px-4 py-2" required>
             </div>
 
             <div class="mb-4">
                 <label class="block font-medium">Artist</label>
-                <input type="text" name="artist" value="{{ old('artist', $song->artist) }}"
-                       class="w-full bg-gray-800 text-white border border-gray-600 rounded px-4 py-2">
+
+                <select name="artist_id" class="w-full bg-gray-800 text-white border border-gray-600 rounded px-4 py-2"
+                    required>
+                    <option value="">-- Select Artist --</option>
+
+                    @foreach ($artists as $artist)
+                        <option value="{{ $artist->id }}"
+                            {{ old('artist_id', $song->artist_id) == $artist->id ? 'selected' : '' }}>
+                            {{ $artist->display_name }}
+                            @if (is_null($artist->user_id))
+                                (Unclaimed)
+                            @endif
+                        </option>
+                    @endforeach
+                </select>
             </div>
 
             <div class="mb-4">
                 <label for="album_id" class="block font-medium">Select Album</label>
-                <select name="album_id" id="album_id" 
-                        class="w-full bg-gray-800 text-white border border-gray-600 rounded px-4 py-2">
+                <select name="album_id" id="album_id"
+                    class="w-full bg-gray-800 text-white border border-gray-600 rounded px-4 py-2">
                     <option value="">-- None --</option>
-                    @foreach($albums as $album)
-                        <option value="{{ $album->id }}" 
+                    @foreach ($albums as $album)
+                        <option value="{{ $album->id }}"
                             {{ $album->id == old('album_id', $song->album_id) ? 'selected' : '' }}>
                             {{ $album->name }}
                         </option>
@@ -52,12 +64,11 @@
 
             <div class="mb-4">
                 <label for="genre_id" class="block font-medium">Genre</label>
-                <select name="genre_id" id="genre_id" 
-                        class="w-full bg-gray-800 text-white border border-gray-600 rounded px-4 py-2"
-                        required>
+                <select name="genre_id" id="genre_id"
+                    class="w-full bg-gray-800 text-white border border-gray-600 rounded px-4 py-2" required>
                     <option value="">-- Select Genre --</option>
-                    @foreach($genres as $genre)
-                        <option value="{{ $genre->id }}" 
+                    @foreach ($genres as $genre)
+                        <option value="{{ $genre->id }}"
                             {{ $genre->id == old('genre_id', $song->genre_id) ? 'selected' : '' }}>
                             {{ $genre->name }}
                         </option>
@@ -70,18 +81,13 @@
                     Show in Mobile App
                 </label>
 
-                <select
-                    name="is_visible"
-                    id="is_visible"
-                    class="w-full bg-gray-800 text-white border border-gray-600 rounded px-4 py-2"
-                >
-                    <option value="1"
-                        {{ old('is_visible', $song->is_visible) ? 'selected' : '' }}>
+                <select name="is_visible" id="is_visible"
+                    class="w-full bg-gray-800 text-white border border-gray-600 rounded px-4 py-2">
+                    <option value="1" {{ old('is_visible', $song->is_visible) ? 'selected' : '' }}>
                         Yes
                     </option>
 
-                    <option value="0"
-                        {{ !old('is_visible', $song->is_visible) ? 'selected' : '' }}>
+                    <option value="0" {{ !old('is_visible', $song->is_visible) ? 'selected' : '' }}>
                         No (Hidden)
                     </option>
                 </select>
@@ -98,8 +104,10 @@
             </div>
 
             <div class="flex justify-between mt-6">
-                <a href="{{ route('admin.songs.index') }}" class="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600">Cancel</a>
-                <button type="submit" class="px-6 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-500">💾 Update Song</button>
+                <a href="{{ route('admin.songs.index') }}"
+                    class="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600">Cancel</a>
+                <button type="submit" class="px-6 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-500">💾 Update
+                    Song</button>
             </div>
         </form>
     </div>

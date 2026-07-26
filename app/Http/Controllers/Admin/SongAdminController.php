@@ -127,7 +127,12 @@ class SongAdminController extends Controller
     {
         $albums = Album::all();
         $genres = Genre::orderBy('name')->get();
-        return view('admin.songs.edit', compact('song', 'albums', 'genres'));
+        $artists = Artist::orderBy('display_name')->get();
+
+        return view(
+            'admin.songs.edit',
+            compact('song', 'albums', 'genres', 'artists')
+        );
     }
 
     public function update(Request $request, Song $song)
@@ -135,7 +140,7 @@ class SongAdminController extends Controller
         // Similar early-checks could be applied here if you want.
         $validated = $request->validate([
             'title'       => 'required|string|max:255',
-            'artist'      => 'nullable|string|max:255',
+            'artist_id' => 'required|exists:artists,id',
             'album_id'    => 'nullable|exists:albums,id',
             'genre_id'    => 'required|exists:genres,id',
             'is_visible' => 'required|in:0,1',
@@ -143,7 +148,16 @@ class SongAdminController extends Controller
             'cover_image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
-        $data = $request->only(['title', 'artist', 'album_id', 'genre_id', 'is_visible']);
+        $artist = Artist::findOrFail($validated['artist_id']);
+
+        $data = [
+            'title'       => $validated['title'],
+            'artist_id'   => $artist->id,
+            'artist'      => $artist->display_name,
+            'album_id'    => $validated['album_id'] ?? null,
+            'genre_id'    => $validated['genre_id'],
+            'is_visible'  => (bool) $validated['is_visible'],
+        ];
 
         $data['is_visible'] = (bool) $request->is_visible;
 
