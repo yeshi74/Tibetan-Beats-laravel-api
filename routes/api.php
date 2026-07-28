@@ -87,8 +87,7 @@ Route::get('/artists/popular',[ArtistController::class, 'popular']);
 
 Route::get('/artists/recently-verified', [ArtistController::class, 'recentlyVerified']);
 
-    // Artist public view
-Route::get('/artists/{artist}', [ArtistController::class, 'show']);
+
 
 Route::get('/search/sections', [AppSectionController::class, 'search']);
 
@@ -166,9 +165,12 @@ Route::middleware(['auth:sanctum', 'last_seen'])->group(function () {
     Route::post('/stripe/billing-portal',  [StripeController::class, 'createBillingPortal']);
     Route::post('/stripe/confirm',         [StripeController::class, 'confirmAfterCheckout']);
 
+    Route::get('artists/me',     [ArtistController::class, 'me']);
+    
+
     // 🎤 Artist
     Route::post('artists/apply', [ArtistController::class, 'apply']);
-    Route::get('artists/me',     [ArtistController::class, 'me']);
+   
 
     // 📤 Song upload
     Route::post('songs', [SongUploadController::class, 'store']);
@@ -213,7 +215,6 @@ Route::middleware(['auth:sanctum', 'last_seen'])->group(function () {
     //claim profile
     Route::post('/artist-claims',[ArtistClaimController::class, 'store']);
 
-    Route::get('/artist-status', [ArtistController::class, 'artistStatus']);
 
     
 
@@ -230,6 +231,7 @@ Route::middleware(['auth:sanctum', 'last_seen'])->group(function () {
 
     Route::post('/support', [SupportController::class, 'store']);
 
-
-
 });
+
+// Artist public view
+Route::get('/artists/{artist}', [ArtistController::class, 'show']);
