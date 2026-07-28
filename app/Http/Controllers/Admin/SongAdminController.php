@@ -11,12 +11,13 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use App\Models\Artist;
 use App\Models\Notification;
+use App\Models\Mood;
 
 class SongAdminController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Song::with(['album', 'genre'])->latest();
+        $query = Song::with(['album', 'genre', 'moods'])->latest();
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -65,10 +66,14 @@ class SongAdminController extends Controller
         $albums = Album::all();
         $genres = Genre::orderBy('name')->get();
         $artists = Artist::orderBy('display_name')->get();
+        $moods = Mood::where('is_active', true)
+        ->orderBy('sort_order')
+        ->orderBy('name')
+        ->get();
 
         return view(
             'admin.songs.create',
-            compact('albums', 'genres', 'artists')
+            compact('albums', 'genres', 'artists', 'moods')
         );
     }
 
@@ -93,6 +98,8 @@ class SongAdminController extends Controller
             'file'        => 'required|file|mimes:mp3,wav|max:51200',
             'cover_image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'album_id'    => 'nullable|exists:albums,id',
+            'moods' => 'nullable|array',
+            'moods.*' => 'exists:moods,id',
             'genre_id'    => 'required|exists:genres,id',
             'is_visible' => 'required|in:0,1',
         ], [
@@ -108,7 +115,7 @@ class SongAdminController extends Controller
 
             $artist = Artist::findOrFail($validated['artist_id']);
 
-        Song::create([
+        $song = Song::create([
             'title'       => $validated['title'],
             'artist_id' => $artist->id,
             'artist' => $artist->display_name,
@@ -118,6 +125,7 @@ class SongAdminController extends Controller
             'genre_id'    => $validated['genre_id'],
             'is_visible' => (bool) $validated['is_visible'],
         ]);
+        $song->moods()->sync($request->input('moods', []));
 
         return redirect()->route('admin.songs.index')
             ->with('success', 'Song uploaded successfully!');
@@ -129,9 +137,20 @@ class SongAdminController extends Controller
         $genres = Genre::orderBy('name')->get();
         $artists = Artist::orderBy('display_name')->get();
 
+        $moods = Mood::where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
+
         return view(
             'admin.songs.edit',
-            compact('song', 'albums', 'genres', 'artists')
+            compact(
+                'song',
+                'albums',
+                'genres',
+                'artists',
+                'moods'
+            )
         );
     }
 
@@ -142,6 +161,8 @@ class SongAdminController extends Controller
             'title'       => 'required|string|max:255',
             'artist_id' => 'required|exists:artists,id',
             'album_id'    => 'nullable|exists:albums,id',
+            'moods' => 'nullable|array',
+            'moods.*' => 'exists:moods,id',
             'genre_id'    => 'required|exists:genres,id',
             'is_visible' => 'required|in:0,1',
             'file'        => 'nullable|file|mimes:mp3,wav|max:51200',
@@ -176,6 +197,7 @@ class SongAdminController extends Controller
         }
 
         $song->update($data);
+        $song->moods()->sync($request->input('moods', []));
 
         return redirect()->route('admin.songs.index')
             ->with('success', 'Song updated successfully!');

@@ -83,6 +83,25 @@ class AppSectionController extends Controller
                             ->values()
                         : [],
 
+                        'moods' => $section->section_type === 'mood'
+                            ? \App\Models\Mood::where('is_active', true)
+                                ->withCount([
+                                    'songs' => function ($query) {
+                                        $query->visible()
+                                            ->where('status', 'published');
+                                    }
+                                ])
+                                ->orderBy('sort_order')
+                                ->get([
+                                    'id',
+                                    'name',
+                                    'emoji',
+                                    'start_color',
+                                    'end_color',
+                                    'sort_order',
+                                ])
+                            : [],
+
                     'songs' => match ($section->section_type) {
 
                         'playlist' => $section->playlist

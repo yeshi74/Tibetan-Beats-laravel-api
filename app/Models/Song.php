@@ -118,6 +118,12 @@ class Song extends Model
         return $this->hasMany(RecentlyPlayed::class, 'song_id');
     }
 
+    public function moods()
+    {
+        return $this->belongsToMany(Mood::class)
+            ->withTimestamps();
+    }
+
 
 
 }

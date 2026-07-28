@@ -28,6 +28,7 @@ use App\Http\Controllers\Api\AppSectionController;
 use App\Http\Controllers\Api\AppSettingController;
 use App\Http\Controllers\Api\DedicationCommentController;
 use App\Http\Controllers\Api\SupportController;
+use App\Http\Controllers\Api\MoodApiController;
 use Illuminate\Support\Facades\Log;
 
 /* -------------------- Public (no auth) -------------------- */
@@ -47,6 +48,9 @@ Route::get('/songs/new-releases',[SongApiController::class, 'newReleases']);
 Route::get('/songs/{id}', [SongApiController::class, 'show']);
 Route::get('/songs/stream/{id}', [SongApiController::class, 'stream']); // stream url
 Route::post('/songs/{song}/played', [SongApiController::class, 'markPlayed']);
+
+Route::get('/moods', [MoodApiController::class, 'index']);
+Route::get('/moods/{mood}/songs', [MoodApiController::class, 'songs']);
 
 // Auth (public endpoints)
 Route::post('/register', [AuthController::class, 'register']);

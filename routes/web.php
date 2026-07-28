@@ -22,6 +22,7 @@ use App\Http\Controllers\Admin\AdminHomeController;
 use App\Http\Controllers\Admin\ArtistApplicationController;
 use App\Http\Controllers\PrivacyPolicyController;
 use App\Http\Controllers\Admin\SupportMessageController;
+use App\Http\Controllers\Admin\MoodController;
 
 
 Route::get('/', function () {
@@ -56,6 +57,7 @@ Route::middleware(['auth', 'is_admin'])
         Route::resource('songs', SongAdminController::class);
 
         Route::resource('playlists', PlaylistController::class);
+        Route::resource('moods', MoodController::class);
         Route::patch('playlists/{playlist}/toggle-featured', [PlaylistController::class, 'toggleFeatured'])
             ->name('playlists.toggleFeatured');
         Route::resource('genres', \App\Http\Controllers\Admin\GenreController::class);

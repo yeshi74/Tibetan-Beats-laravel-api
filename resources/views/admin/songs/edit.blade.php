@@ -77,6 +77,59 @@
             </div>
 
             <div class="mb-4">
+                <label class="block font-medium mb-2">
+                    Listen by Mood
+                </label>
+
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+
+                    @foreach ($moods as $mood)
+                        <label class="flex items-center gap-2 bg-gray-800 rounded px-3 py-2">
+
+                            <input type="checkbox" name="moods[]" value="{{ $mood->id }}" class="rounded"
+                                {{ in_array($mood->id, old('moods', $song->moods->pluck('id')->toArray())) ? 'checked' : '' }}>
+
+                            <span>
+                                {{ $mood->emoji }}
+                                {{ $mood->name }}
+                            </span>
+
+                        </label>
+                    @endforeach
+
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+
+                    <div>
+                        <label class="block text-sm font-medium mb-2">
+                            Start Color
+                        </label>
+
+                        <input type="color" name="start_color"
+                            value="{{ old('start_color', $mood->start_color ?? '#8E24AA') }}"
+                            class="w-full h-12 rounded-lg border">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium mb-2">
+                            End Color
+                        </label>
+
+                        <input type="color" name="end_color"
+                            value="{{ old('end_color', $mood->end_color ?? '#AB47BC') }}"
+                            class="w-full h-12 rounded-lg border">
+                    </div>
+
+                </div>
+
+                <p class="text-sm text-gray-400 mt-2">
+                    A song can belong to multiple moods.
+                </p>
+
+            </div>
+
+            <div class="mb-4">
                 <label for="is_visible" class="block font-medium">
                     Show in Mobile App
                 </label>

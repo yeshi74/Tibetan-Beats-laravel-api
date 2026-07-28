@@ -22,25 +22,21 @@
 
             <div class="mb-4">
                 <label class="block font-medium">Title</label>
-                <input type="text" name="title" 
-                       class="w-full bg-gray-800 text-white border border-gray-600 rounded px-4 py-2"
-                       required>
+                <input type="text" name="title"
+                    class="w-full bg-gray-800 text-white border border-gray-600 rounded px-4 py-2" required>
             </div>
 
             <div class="mb-4">
                 <label class="block font-medium">Artist</label>
 
-                <select
-                    name="artist_id"
-                    class="w-full bg-gray-800 text-white border border-gray-600 rounded px-4 py-2"
-                    required
-                >
+                <select name="artist_id" class="w-full bg-gray-800 text-white border border-gray-600 rounded px-4 py-2"
+                    required>
                     <option value="">-- Select Artist --</option>
 
-                    @foreach($artists as $artist)
+                    @foreach ($artists as $artist)
                         <option value="{{ $artist->id }}">
                             {{ $artist->display_name }}
-                            @if(is_null($artist->user_id))
+                            @if (is_null($artist->user_id))
                                 (Unclaimed)
                             @endif
                         </option>
@@ -50,10 +46,10 @@
 
             <div class="mb-4">
                 <label for="album_id" class="block font-medium">Select Album</label>
-                <select name="album_id" id="album_id" 
-                        class="w-full bg-gray-800 text-white border border-gray-600 rounded px-4 py-2">
+                <select name="album_id" id="album_id"
+                    class="w-full bg-gray-800 text-white border border-gray-600 rounded px-4 py-2">
                     <option value="">-- None --</option>
-                    @foreach($albums as $album)
+                    @foreach ($albums as $album)
                         <option value="{{ $album->id }}">{{ $album->name }}</option>
                     @endforeach
                 </select>
@@ -61,14 +57,36 @@
 
             <div class="mb-4">
                 <label for="genre_id" class="block font-medium">Genre</label>
-                <select name="genre_id" id="genre_id" 
-                        class="w-full bg-gray-800 text-white border border-gray-600 rounded px-4 py-2"
-                        required>
+                <select name="genre_id" id="genre_id"
+                    class="w-full bg-gray-800 text-white border border-gray-600 rounded px-4 py-2" required>
                     <option value="">-- Select Genre --</option>
-                    @foreach($genres as $genre)
+                    @foreach ($genres as $genre)
                         <option value="{{ $genre->id }}">{{ $genre->name }}</option>
                     @endforeach
                 </select>
+            </div>
+
+            <div class="mb-4">
+                <label class="block font-medium mb-2">
+                    Listen by Mood
+                </label>
+
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    @foreach ($moods as $mood)
+                        <label class="flex items-center gap-2 bg-gray-800 rounded px-3 py-2">
+                            <input type="checkbox" name="moods[]" value="{{ $mood->id }}" class="rounded">
+
+                            <span>
+                                {{ $mood->emoji }}
+                                {{ $mood->name }}
+                            </span>
+                        </label>
+                    @endforeach
+                </div>
+
+                <p class="text-sm text-gray-400 mt-2">
+                    A song can belong to multiple moods.
+                </p>
             </div>
 
             <div class="mb-4">
@@ -76,11 +94,8 @@
                     Show in Mobile App
                 </label>
 
-                <select
-                    name="is_visible"
-                    id="is_visible"
-                    class="w-full bg-gray-800 text-white border border-gray-600 rounded px-4 py-2"
-                >
+                <select name="is_visible" id="is_visible"
+                    class="w-full bg-gray-800 text-white border border-gray-600 rounded px-4 py-2">
                     <option value="1" selected>Yes</option>
                     <option value="0">No (Hidden)</option>
                 </select>
@@ -96,8 +111,10 @@
             </div>
 
             <div class="flex justify-between mt-6">
-                <a href="{{ route('admin.songs.index') }}" class="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600">Cancel</a>
-                <button type="submit" class="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-500">🎶 Upload Song</button>
+                <a href="{{ route('admin.songs.index') }}"
+                    class="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600">Cancel</a>
+                <button type="submit" class="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-500">🎶 Upload
+                    Song</button>
             </div>
         </form>
     </div>
