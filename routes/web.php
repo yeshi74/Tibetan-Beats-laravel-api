@@ -229,5 +229,6 @@ Route::get('/billing/return', function () {
 });
 
 Route::get('/song/{song}', [ShareController::class, 'song']);
+Route::get('/listen/{song}', [ShareController::class, 'song']);
 
 
