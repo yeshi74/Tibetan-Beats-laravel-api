@@ -23,6 +23,8 @@ use App\Http\Controllers\Admin\ArtistApplicationController;
 use App\Http\Controllers\PrivacyPolicyController;
 use App\Http\Controllers\Admin\SupportMessageController;
 use App\Http\Controllers\Admin\MoodController;
+use App\Http\Controllers\ShareController;
+use App\Models\Song;
 
 
 Route::get('/', function () {
@@ -225,5 +227,7 @@ Route::get('/billing/return', function () {
     return response('<h2>Thanks!</h2><p>You can close this window and return to the app.</p>', 200)
         ->header('Content-Type', 'text/html');
 });
+
+Route::get('/song/{song}', [ShareController::class, 'song']);
 
 
