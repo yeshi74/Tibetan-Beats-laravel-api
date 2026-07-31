@@ -63,19 +63,30 @@
             {{ $song->artist ?: 'Unknown Artist' }}
         </p>
 
-        <a href="https://apps.apple.com/in/app/tibettune/id6782834506"
+        <button onclick="openApp()"
             style="
-            display:inline-block;
-            background:#ffd700;
-            color:#000;
-            padding:16px 34px;
-            border-radius:999px;
-            text-decoration:none;
-            font-weight:700;
-            font-size:18px;
-        ">
+        background:#ffd700;
+        color:#000;
+        padding:16px 34px;
+        border-radius:999px;
+        border:none;
+        font-weight:700;
+        font-size:18px;
+        cursor:pointer;
+    ">
             Open in TibetTune
-        </a>
+        </button>
+
+        <script>
+            function openApp() {
+                window.location = 'TibetTune://song/{{ $song->id }}';
+
+                setTimeout(() => {
+                    window.location =
+                        'https://apps.apple.com/in/app/tibettune/id6782834506';
+                }, 1500);
+            }
+        </script>
 
     </div>
 
