@@ -87,14 +87,10 @@
         }
 
         .brand-icon {
-            width: 38px;
-            height: 38px;
-            display: grid;
-            place-items: center;
-            border-radius: 11px;
-            background: linear-gradient(135deg, var(--accent), var(--accent-2));
-            font-size: 19px;
-            box-shadow: 0 8px 25px rgba(124, 92, 255, .25);
+            width: 36px;
+            height: 36px;
+            object-fit: contain;
+            border-radius: 8px;
         }
 
         .nav-links {
@@ -536,7 +532,7 @@
         <div class="container nav-inner">
 
             <a href="/" class="brand">
-                <span class="brand-icon">🎵</span>
+                <img src="{{ asset('images/tibettune_icon.png') }}" alt="TibetTune" class="brand-icon">
                 <span>TibetTune</span>
             </a>
 
