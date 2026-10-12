@@ -40,10 +40,26 @@ class AppSectionController extends Controller
                 'section_type',
                 'reference_id',
                 'sort_order',
+                'limit',
             ]);
 
+            // Get the song IDs currently displayed in Trending
+            $trendingSection = $sections->firstWhere('section_type', 'trending_songs');
+
+            $trendingSongIds = [];
+
+            if ($trendingSection) {
+                $trendingSongIds = Song::visible()
+                    ->where('status', 'published')
+                    ->whereNotIn('genre_id', [5, 15])
+                    ->orderByDesc('play_count')
+                    ->take($trendingSection->limit)
+                    ->pluck('id')
+                    ->toArray();
+            }
+
         return response()->json([
-            'sections' => $sections->map(function ($section) use ($request, $likedIds) {
+            'sections' => $sections->map(function ($section) use ($request, $likedIds, $trendingSongIds) {
 
                 return [
                     'id' => $section->id,
@@ -138,16 +154,21 @@ class AppSectionController extends Controller
                             ->map(fn ($song) => SongTransformer::transform($request, $song, $likedIds))
                             ->values(),
 
-                        'most_liked_songs' => Song::visible()->where('status', 'published')
+                        'most_liked_songs' => Song::visible()
+                            ->where('status', 'published')
                             ->whereNotIn('genre_id', [5, 15])
+                            ->when(!empty($trendingSongIds), function ($query) use ($trendingSongIds) {
+                                $query->whereNotIn('songs.id', $trendingSongIds);
+                            })
                             ->select('songs.*')
                             ->leftJoin('liked_songs', 'songs.id', '=', 'liked_songs.song_id')
                             ->selectRaw('COUNT(liked_songs.id) as likes_count')
                             ->groupBy('songs.id')
                             ->orderByDesc('likes_count')
+                            ->orderByDesc('songs.created_at')
                             ->take($section->limit)
                             ->get()
-                            ->map(fn ($song) => SongTransformer::transform($request, $song, $likedIds))
+                            ->map(fn($song) => SongTransformer::transform($request, $song, $likedIds))
                             ->values(),
 
                         default => [],
